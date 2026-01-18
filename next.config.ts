@@ -1,10 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable image optimization for Netlify
+  // Static export for Netlify deployment
+  output: 'export',
+  // Disable image optimization for static export
   images: {
     unoptimized: true,
   },
+  // Trailing slashes for clean URLs
+  trailingSlash: true,
 };
 
 export default nextConfig;
