@@ -44,7 +44,7 @@ export async function deriveKeyFromPasscode(
   const key = await crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: usedSalt,
+      salt: usedSalt as BufferSource,
       iterations: ITERATIONS,
       hash: 'SHA-256',
     },
@@ -172,7 +172,7 @@ export async function retrieveMasterKey(passcode?: string): Promise<CryptoKey | 
       if (!passcode) return null;
       const { key: passcodeKey } = await deriveKeyFromPasscode(
         passcode,
-        base64ToArrayBuffer(keyData.salt) as Uint8Array
+        new Uint8Array(base64ToArrayBuffer(keyData.salt))
       );
       exportedKey = await decrypt(keyData.data, keyData.iv, passcodeKey);
     } else {

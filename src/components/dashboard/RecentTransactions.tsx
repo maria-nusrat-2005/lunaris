@@ -3,7 +3,7 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowRight, TrendingUp } from 'lucide-react';
+import { ArrowRight, TrendingUp, Circle, type LucideIcon } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,9 +25,9 @@ export function RecentTransactions() {
     return categories.find((c) => c.id === categoryId);
   };
 
-  const getIcon = (iconName: string) => {
-    const IconComponent = (LucideIcons as Record<string, LucideIcons.LucideIcon>)[iconName];
-    return IconComponent || LucideIcons.Circle;
+  const getIcon = (iconName: string): LucideIcon => {
+    const icons = LucideIcons as unknown as Record<string, LucideIcon>;
+    return icons[iconName] || Circle;
   };
 
   if (recentTransactions.length === 0) {

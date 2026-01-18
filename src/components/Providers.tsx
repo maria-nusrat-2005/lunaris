@@ -4,7 +4,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
-import { useInitializeApp, useTheme } from '@/lib/hooks';
+import { useInitializeApp, useTheme, useDailyReminder } from '@/lib/hooks';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -78,7 +78,13 @@ export function Providers({ children }: ProvidersProps) {
         )}
       </AnimatePresence>
       
-      {isInitialized && children}
+      {isInitialized && <DailyReminderWrapper>{children}</DailyReminderWrapper>}
     </>
   );
+}
+
+// Separate component to use the hook after initialization
+function DailyReminderWrapper({ children }: { children: ReactNode }) {
+  useDailyReminder();
+  return <>{children}</>;
 }

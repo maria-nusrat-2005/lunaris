@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/db/database';
 import type { Goal, GoalContribution, Currency } from '@/lib/types';
+import { useNotificationStore } from './notificationStore';
 
 interface GoalState {
   goals: Goal[];
@@ -123,6 +124,8 @@ export const useGoalStore = create<GoalState>((set, get) => ({
 
       const newAmount = goal.currentAmount + amount;
       const isNowCompleted = newAmount >= goal.targetAmount;
+      const oldProgress = (goal.currentAmount / goal.targetAmount) * 100;
+      const newProgress = (newAmount / goal.targetAmount) * 100;
 
       const updatedGoal: Partial<Goal> = {
         currentAmount: newAmount,
@@ -133,6 +136,22 @@ export const useGoalStore = create<GoalState>((set, get) => ({
         updatedGoal.isCompleted = true;
         updatedGoal.completedAt = now;
         set({ justCompletedGoalId: goalId });
+        
+        // Goal completed notification
+        useNotificationStore.getState().addNotification({
+          type: 'success',
+          title: '🎉 Goal Achieved!',
+          message: `Congratulations! You've reached your "${goal.name}" savings goal of ৳${goal.targetAmount.toLocaleString()}.`,
+          actionUrl: '/goals',
+        });
+      } else if (newProgress >= 50 && oldProgress < 50) {
+        // 50% milestone notification
+        useNotificationStore.getState().addNotification({
+          type: 'info',
+          title: '💪 Halfway There!',
+          message: `You're 50% towards your "${goal.name}" goal. Keep going!`,
+          actionUrl: '/goals',
+        });
       }
 
       await db.goals.update(goalId, updatedGoal);

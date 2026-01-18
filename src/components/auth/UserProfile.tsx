@@ -18,12 +18,20 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores';
 import { useTranslation } from '@/lib/hooks';
-import type { UserRole } from '@/lib/types';
+import type { UserRole, UserOccupation } from '@/lib/types';
 
 const roleConfig: Record<UserRole, { icon: typeof User; color: string; bgColor: string; label: string }> = {
   admin: { icon: Shield, color: 'text-purple-500', bgColor: 'bg-purple-500/10', label: 'Admin' },
   user: { icon: User, color: 'text-primary', bgColor: 'bg-primary/10', label: 'User' },
   viewer: { icon: Users, color: 'text-muted-foreground', bgColor: 'bg-muted', label: 'Viewer' },
+};
+
+const occupationLabels: Record<UserOccupation, string> = {
+  student: '🎓 Student',
+  freelancer: '💼 Freelancer',
+  job_holder: '👔 Job Holder',
+  housewife: '🏠 Housewife',
+  other: '👤 Other',
 };
 
 export function UserProfile() {
@@ -73,7 +81,9 @@ export function UserProfile() {
           </div>
           <div className="hidden md:block text-left">
             <p className="text-sm font-medium leading-none">{user.name}</p>
-            <p className="text-xs text-muted-foreground">{roleInfo.label}</p>
+            <p className="text-xs text-muted-foreground">
+              {user.occupation ? occupationLabels[user.occupation] : roleInfo.label}
+            </p>
           </div>
           <ChevronDown className="w-4 h-4 text-muted-foreground hidden md:block" />
         </Button>

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/db/database';
 import type { Transaction, TransactionType, Currency, RecurrenceType } from '@/lib/types';
+import { useNotificationStore } from './notificationStore';
 
 interface TransactionFilters {
   type?: TransactionType;
@@ -69,6 +70,15 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       set((state) => ({
         transactions: [transaction, ...state.transactions],
       }));
+      
+      // Add notification for new transaction
+      useNotificationStore.getState().addNotification({
+        type: 'success',
+        title: data.type === 'income' ? '💰 Income Added' : '💸 Expense Recorded',
+        message: `${data.description || (data.type === 'income' ? 'Income' : 'Expense')} of ৳${data.amount.toLocaleString()} has been added.`,
+        actionUrl: '/transactions',
+      });
+      
       return transaction;
     } catch (error) {
       set({ error: (error as Error).message });

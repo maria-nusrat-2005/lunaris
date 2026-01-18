@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, TrendingUp, TrendingDown, Calendar, MoreVertical, Trash2, Edit } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Calendar, MoreVertical, Trash2, Edit, Circle, type LucideIcon } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -41,9 +41,9 @@ export default function TransactionsPage() {
     return categories.find((c) => c.id === categoryId);
   };
 
-  const getIcon = (iconName: string) => {
-    const IconComponent = (LucideIcons as Record<string, LucideIcons.LucideIcon>)[iconName];
-    return IconComponent || LucideIcons.Circle;
+  const getIcon = (iconName: string): LucideIcon => {
+    const icons = LucideIcons as unknown as Record<string, LucideIcon>;
+    return icons[iconName] || Circle;
   };
 
   const filteredTransactions = useMemo(() => {

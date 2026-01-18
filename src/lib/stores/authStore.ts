@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '@/lib/types';
+import { createWelcomeNotification } from './notificationStore';
 
 // Default demo users
 const DEFAULT_USERS: User[] = [
@@ -52,7 +53,8 @@ interface AuthStore {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (name: string, email: string, password: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  updateProfile: (updates: Partial<Pick<User, 'name' | 'avatar'>>) => void;
+  updateProfile: (updates: Partial<Pick<User, 'name' | 'avatar' | 'occupation'>>) => void;
+  updatePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   
   // Permission helpers
   canEdit: () => boolean;
@@ -83,6 +85,8 @@ export const useAuthStore = create<AuthStore>()(
           const user = DEFAULT_USERS.find(u => u.email === normalizedEmail);
           if (user) {
             set({ isAuthenticated: true, user, isLoading: false });
+            // Send welcome notification
+            setTimeout(() => createWelcomeNotification(), 500);
             return { success: true };
           }
         }
@@ -95,6 +99,8 @@ export const useAuthStore = create<AuthStore>()(
         if (registeredUser) {
           const { password: _, ...user } = registeredUser;
           set({ isAuthenticated: true, user, isLoading: false });
+          // Send welcome notification
+          setTimeout(() => createWelcomeNotification(), 500);
           return { success: true };
         }
         
@@ -147,9 +153,71 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       updateProfile: (updates) => {
+        const { user, registeredUsers } = get();
+        if (!user) return;
+        
+        // Update user state
         set(state => ({
           user: state.user ? { ...state.user, ...updates } : null,
+          // Also update in registeredUsers if exists
+          registeredUsers: state.registeredUsers.map(u => 
+            u.id === user.id ? { ...u, ...updates } : u
+          ),
         }));
+      },
+
+      updatePassword: async (oldPassword, newPassword) => {
+        const { user, registeredUsers } = get();
+        if (!user) return { success: false, error: 'Not logged in' };
+        
+        // Check if it's a default user
+        if (DEFAULT_PASSWORDS[user.email] !== undefined) {
+          // For default users, verify old password matches
+          if (DEFAULT_PASSWORDS[user.email] !== oldPassword) {
+            return { success: false, error: 'Current password is incorrect' };
+          }
+          // Note: Default users can't actually change password in this demo
+          // Create a new registered user entry instead
+          const registeredUser = registeredUsers.find(u => u.email === user.email);
+          if (registeredUser) {
+            if (registeredUser.password !== oldPassword) {
+              return { success: false, error: 'Current password is incorrect' };
+            }
+            set(state => ({
+              registeredUsers: state.registeredUsers.map(u =>
+                u.id === user.id ? { ...u, password: newPassword } : u
+              ),
+            }));
+          } else {
+            // Convert default user to registered user with new password
+            const newUser: RegisteredUser = {
+              ...user,
+              password: newPassword,
+            };
+            set(state => ({
+              registeredUsers: [...state.registeredUsers, newUser],
+            }));
+          }
+          return { success: true };
+        }
+        
+        // For registered users
+        const registeredUser = registeredUsers.find(u => u.id === user.id);
+        if (!registeredUser) {
+          return { success: false, error: 'User not found' };
+        }
+        
+        if (registeredUser.password !== oldPassword) {
+          return { success: false, error: 'Current password is incorrect' };
+        }
+        
+        set(state => ({
+          registeredUsers: state.registeredUsers.map(u =>
+            u.id === user.id ? { ...u, password: newPassword } : u
+          ),
+        }));
+        
+        return { success: true };
       },
 
       // Permission helpers

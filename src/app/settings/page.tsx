@@ -45,6 +45,7 @@ import { useSettingsStore } from '@/lib/stores';
 import { useTheme, useTranslation } from '@/lib/hooks';
 import { exportToJSON, exportToCSV, importFromJSON, importFromCSV, downloadFile, deleteAllData } from '@/lib/utils/dataExport';
 import { isAIEnabled, saveAPIKey, removeAPIKey, getMaskedAPIKey } from '@/lib/ai';
+import { ProfileSettings } from '@/components/settings';
 import type { ThemeMode, Currency, Language } from '@/lib/types';
 
 export default function SettingsPage() {
@@ -184,6 +185,15 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">
           {t('customizeExperience')}
         </p>
+      </motion.div>
+
+      {/* Profile Settings */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.05 }}
+      >
+        <ProfileSettings />
       </motion.div>
 
       {/* Appearance */}

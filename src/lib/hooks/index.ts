@@ -10,3 +10,4 @@ export {
 } from './useAppData';
 
 export { useTranslation } from './useTranslation';
+export { useDailyReminder, DailyReminderProvider } from './useDailyReminder';

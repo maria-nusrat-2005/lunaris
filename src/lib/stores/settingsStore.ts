@@ -108,6 +108,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 // UI-specific store for transient state
 interface UIState {
   sidebarOpen: boolean;
+  sidebarCollapsed: boolean; // For desktop collapse state
   activeDialog: string | null;
   isAddingTransaction: boolean;
   transactionTypeToAdd: 'income' | 'expense' | null;
@@ -115,6 +116,8 @@ interface UIState {
   // Actions
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
+  toggleSidebarCollapsed: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   openDialog: (dialogId: string) => void;
   closeDialog: () => void;
   openAddTransaction: (type: 'income' | 'expense') => void;
@@ -122,13 +125,16 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
-  sidebarOpen: true,
+  sidebarOpen: false, // Start closed on mobile
+  sidebarCollapsed: false, // Start expanded on desktop
   activeDialog: null,
   isAddingTransaction: false,
   transactionTypeToAdd: null,
 
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+  setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   openDialog: (dialogId) => set({ activeDialog: dialogId }),
   closeDialog: () => set({ activeDialog: null }),
   openAddTransaction: (type) => set({ isAddingTransaction: true, transactionTypeToAdd: type }),

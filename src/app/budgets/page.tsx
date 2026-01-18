@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Wallet, AlertCircle } from 'lucide-react';
+import { Plus, Wallet, AlertCircle, Circle, type LucideIcon } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -60,9 +60,9 @@ export default function BudgetsPage() {
     (c) => !currentBudgets.some((b) => b.categoryId === c.id)
   );
 
-  const getIcon = (iconName: string) => {
-    const IconComponent = (LucideIcons as Record<string, LucideIcons.LucideIcon>)[iconName];
-    return IconComponent || LucideIcons.Circle;
+  const getIcon = (iconName: string): LucideIcon => {
+    const icons = LucideIcons as unknown as Record<string, LucideIcon>;
+    return icons[iconName] || Circle;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
