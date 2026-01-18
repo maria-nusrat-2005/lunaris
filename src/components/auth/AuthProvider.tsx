@@ -10,8 +10,14 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// Routes that don't require authentication
+// Routes that don't require authentication (without trailing slash for comparison)
 const PUBLIC_ROUTES = ['/login', '/welcome'];
+
+// Helper to normalize pathname for comparison (handles trailing slashes)
+function isPublicRoute(pathname: string): boolean {
+  const normalizedPath = pathname.replace(/\/$/, '') || '/';
+  return PUBLIC_ROUTES.some(route => normalizedPath === route || normalizedPath === route + '/');
+}
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter();
@@ -27,15 +33,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     if (!isHydrated) return;
     
-    const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
+    const isPublic = isPublicRoute(pathname);
     
     // If not authenticated and not on a public route, redirect to welcome page
-    if (!isAuthenticated && !isPublicRoute) {
-      router.push('/welcome');
+    if (!isAuthenticated && !isPublic) {
+      router.push('/welcome/');
     }
     
     // If authenticated and on login page, redirect to dashboard
-    if (isAuthenticated && pathname === '/login') {
+    const normalizedPath = pathname.replace(/\/$/, '') || '/';
+    if (isAuthenticated && normalizedPath === '/login') {
       router.push('/');
     }
   }, [isAuthenticated, pathname, isHydrated, router]);
@@ -50,7 +57,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   // On public routes, just render children
-  if (PUBLIC_ROUTES.includes(pathname)) {
+  if (isPublicRoute(pathname)) {
     return <>{children}</>;
   }
 
