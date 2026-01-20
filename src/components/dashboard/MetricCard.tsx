@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { formatCurrency, formatPercentage } from '@/lib/utils/helpers';
+import { formatCurrency, formatPercentage, localizeNumbers } from '@/lib/utils/helpers';
 import { useTranslation } from '@/lib/hooks';
 
 interface MetricCardProps {
@@ -26,8 +26,8 @@ export function MetricCard({
   value,
   currency,
   icon: Icon,
-  iconColor = 'text-primary',
-  iconBgColor = 'bg-primary/10',
+  iconColor = 'text-muted-foreground/70',
+  iconBgColor = 'bg-secondary/30',
   trend,
   delay = 0,
   isPercentage = false,
@@ -35,7 +35,7 @@ export function MetricCard({
   const { language } = useTranslation();
   
   const displayValue = isPercentage 
-    ? formatPercentage(value)
+    ? formatPercentage(value, 1, language)
     : formatCurrency(value, (currency || 'BDT') as any, language);
 
   return (
@@ -59,7 +59,7 @@ export function MetricCard({
                   'text-xs font-medium',
                   trend >= 0 ? 'text-emerald' : 'text-danger'
                 )}>
-                  {trend >= 0 ? '+' : ''}{trend.toFixed(1)}%
+                  {trend >= 0 ? '+' : ''}{localizeNumbers(trend.toFixed(1), language)}%
                 </p>
               )}
             </div>

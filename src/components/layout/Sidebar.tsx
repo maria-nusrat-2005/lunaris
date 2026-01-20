@@ -15,13 +15,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  GraduationCap,
   ScanLine,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore, useAuthStore } from '@/lib/stores';
 import { useIsMobile, useTranslation } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
+import { localizeNumbers } from '@/lib/utils/helpers';
 import {
   Tooltip,
   TooltipContent,
@@ -32,26 +32,18 @@ import {
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen, sidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
-  const { user } = useAuthStore();
   const isMobile = useIsMobile();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
-  // Check if user is a student
-  const isStudent = user?.occupation === 'student';
-
-  // Base nav items - Education only shows for students
-  const allNavItems = [
+  // Base nav items
+  const navItems = [
     { href: '/', icon: LayoutDashboard, label: t('dashboard'), always: true },
     { href: '/transactions', icon: ArrowLeftRight, label: t('transactions'), always: true },
     { href: '/budgets', icon: Wallet, label: t('budgets'), always: true },
     { href: '/goals', icon: Target, label: t('goals'), always: true },
-    { href: '/education', icon: GraduationCap, label: 'Education', studentOnly: true },
-    { href: '/scan', icon: ScanLine, label: 'Scan', always: true },
+    { href: '/scan', icon: ScanLine, label: t('scan'), always: true },
     { href: '/settings', icon: Settings, label: t('settings'), always: true },
   ];
-
-  // Filter nav items based on user occupation
-  const navItems = allNavItems.filter(item => item.always || (item.studentOnly && isStudent));
 
   // Close sidebar on mobile when navigating
   const handleNavClick = () => {
@@ -83,7 +75,7 @@ export function Sidebar() {
                 transition={{ duration: 0.2 }}
                 className="text-lg font-bold text-foreground whitespace-nowrap overflow-hidden"
               >
-                Lunaris
+                {t('appName')}
               </motion.span>
             )}
           </AnimatePresence>
@@ -94,7 +86,9 @@ export function Sidebar() {
       <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
         <TooltipProvider delayDuration={0}>
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = item.href === '/' 
+              ? pathname === '/' 
+              : pathname?.startsWith(item.href);
             const Icon = item.icon;
 
             const linkContent = (
@@ -168,7 +162,7 @@ export function Sidebar() {
           ) : (
             <>
               <ChevronLeft className="w-4 h-4" />
-              <span className="text-sm">Collapse</span>
+              <span className="text-sm">{t('collapse')}</span>
             </>
           )}
         </Button>
@@ -185,7 +179,7 @@ export function Sidebar() {
             className="p-4 border-t border-sidebar-border"
           >
             <p className="text-xs text-muted-foreground text-center">
-              {t('version')} 1.0.0
+              {t('version')} {localizeNumbers('1.0.0', language)}
             </p>
           </motion.div>
         )}
@@ -242,7 +236,7 @@ export function Sidebar() {
             <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
               <Link href="/" className="flex items-center gap-3" onClick={handleNavClick}>
                 <span className="text-3xl">💎</span>
-                <span className="text-lg font-bold text-foreground">Lunaris</span>
+                <span className="text-lg font-bold text-foreground">{t('appName')}</span>
               </Link>
               <Button
                 variant="ghost"
@@ -256,7 +250,9 @@ export function Sidebar() {
             {/* Navigation */}
             <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
               {navItems.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = item.href === '/' 
+                  ? pathname === '/' 
+                  : pathname?.startsWith(item.href);
                 const Icon = item.icon;
 
                 return (
@@ -292,7 +288,7 @@ export function Sidebar() {
             {/* Footer */}
             <div className="p-4 border-t border-sidebar-border">
               <p className="text-xs text-muted-foreground text-center">
-                {t('version')} 1.0.0
+                {t('version')} {localizeNumbers('1.0.0', language)}
               </p>
             </div>
           </motion.aside>

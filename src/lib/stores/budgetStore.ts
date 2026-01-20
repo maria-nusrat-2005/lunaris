@@ -17,7 +17,6 @@ interface BudgetState {
   updateBudget: (id: string, data: Partial<Budget>) => Promise<void>;
   deleteBudget: (id: string) => Promise<void>;
   getBudgetForCategory: (categoryId: string, month: number, year: number) => Budget | undefined;
-  updateBudgetSpending: (categoryId: string, month: number, year: number, amount: number) => Promise<void>;
   calculateRollover: (categoryId: string, month: number, year: number) => Promise<number>;
   getCurrentMonthBudgets: () => Budget[];
 }
@@ -104,54 +103,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
     );
   },
 
-  updateBudgetSpending: async (categoryId, month, year, amount) => {
-    const budget = get().getBudgetForCategory(categoryId, month, year);
-    if (!budget) return;
 
-    try {
-      const newSpent = budget.spent + amount;
-      const totalBudget = budget.amount + budget.rolloverAmount;
-      const oldPercentage = (budget.spent / totalBudget) * 100;
-      const newPercentage = (newSpent / totalBudget) * 100;
-      
-      await db.budgets.update(budget.id, {
-        spent: newSpent,
-        updatedAt: new Date(),
-      });
-      set((state) => ({
-        budgets: state.budgets.map((b) =>
-          b.id === budget.id ? { ...b, spent: newSpent, updatedAt: new Date() } : b
-        ),
-      }));
-      
-      // Check budget thresholds and send notifications
-      const categories = useCategoryStore.getState().categories;
-      const category = categories.find(c => c.id === categoryId);
-      const categoryName = category?.name || 'Budget';
-      
-      // Only notify if crossing a threshold
-      if (newPercentage >= 100 && oldPercentage < 100) {
-        // Budget exceeded!
-        useNotificationStore.getState().addNotification({
-          type: 'error',
-          title: '🚨 Budget Exceeded!',
-          message: `You've exceeded your ${categoryName} budget. Spent ৳${newSpent.toLocaleString()} of ৳${totalBudget.toLocaleString()}.`,
-          actionUrl: '/budgets',
-        });
-      } else if (newPercentage >= 80 && oldPercentage < 80) {
-        // 80% threshold warning
-        useNotificationStore.getState().addNotification({
-          type: 'warning',
-          title: '⚠️ Budget Alert',
-          message: `You've used ${newPercentage.toFixed(0)}% of your ${categoryName} budget.`,
-          actionUrl: '/budgets',
-        });
-      }
-    } catch (error) {
-      set({ error: (error as Error).message });
-      throw error;
-    }
-  },
 
   calculateRollover: async (categoryId, month, year) => {
     // Get previous month's budget

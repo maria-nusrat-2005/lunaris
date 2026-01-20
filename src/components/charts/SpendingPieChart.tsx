@@ -6,7 +6,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDashboardMetrics, useTranslation } from '@/lib/hooks';
 import { useSettingsStore } from '@/lib/stores';
-import { formatCurrency, formatPercentage } from '@/lib/utils/helpers';
+import { formatCurrency, formatPercentage, localizeNumbers } from '@/lib/utils/helpers';
 
 export function SpendingPieChart() {
   const { topCategories } = useDashboardMetrics();
@@ -15,7 +15,7 @@ export function SpendingPieChart() {
   const currency = settings?.currency || 'BDT';
 
   const data = topCategories.map((cat) => ({
-    name: cat.categoryName,
+    name: t(cat.categoryName.toLowerCase().replace(/ & /g, '').replace(/ /g, '')),
     value: cat.amount,
     color: cat.color,
     percentage: cat.percentage,
@@ -28,7 +28,7 @@ export function SpendingPieChart() {
         <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
           <p className="font-medium">{data.name}</p>
           <p className="text-sm text-muted-foreground">
-            {formatCurrency(data.value, currency as any, language)} ({formatPercentage(data.percentage)})
+            {formatCurrency(data.value, currency as any, language)} ({formatPercentage(data.percentage, 1, language)})
           </p>
         </div>
       );
@@ -53,7 +53,7 @@ export function SpendingPieChart() {
         dominantBaseline="central"
         className="text-xs font-medium"
       >
-        {`${(percent * 100).toFixed(0)}%`}
+        {localizeNumbers(`${(percent * 100).toFixed(0)}%`, language)}
       </text>
     );
   };

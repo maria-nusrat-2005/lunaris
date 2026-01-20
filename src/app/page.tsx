@@ -2,20 +2,24 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Wallet, TrendingUp, TrendingDown, PiggyBank } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Info } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import { MetricCard, MetricGrid, QuickActions, RecentTransactions, AIInsights } from '@/components/dashboard';
 import { CashFlowChart, SpendingPieChart } from '@/components/charts';
 import { TransactionDialog } from '@/components/transactions';
+import { AIChatPanel } from '@/components/ai';
 import { useDashboardMetrics, useTranslation } from '@/lib/hooks';
 import { useSettingsStore, useAuthStore } from '@/lib/stores';
 import { ViewerGuard } from '@/components/auth';
+import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
   const metrics = useDashboardMetrics();
   const settings = useSettingsStore((s) => s.settings);
   const { t } = useTranslation();
   const currency = settings?.currency || 'BDT';
+
+  const showExpenseAlert = metrics.monthlyExpense > metrics.monthlyIncome;
 
   return (
     <AppShell>
@@ -33,20 +37,38 @@ export default function DashboardPage() {
           </p>
         </motion.div>
 
+        {showExpenseAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="p-4 rounded-xl bg-danger/5 border border-danger/10 flex items-start gap-4"
+          >
+            <div className="p-2 rounded-full bg-background text-danger shadow-sm">
+              <Info className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-medium text-danger/90 text-sm">
+                {t('expenseAlertTitle')}
+              </h3>
+              <p className="text-sm text-danger/70 mt-0.5">
+                {t('expenseAlertDesc')}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Quick actions - protected for viewers */}
         <ViewerGuard>
           <QuickActions />
         </ViewerGuard>
 
-        {/* Metric cards */}
         <MetricGrid>
           <MetricCard
             title={t('totalBalance')}
             value={metrics.totalBalance}
             currency={currency}
             icon={Wallet}
-            iconColor="text-primary"
-            iconBgColor="bg-primary/10"
             delay={0}
           />
           <MetricCard
@@ -54,8 +76,6 @@ export default function DashboardPage() {
             value={metrics.monthlyIncome}
             currency={currency}
             icon={TrendingUp}
-            iconColor="text-emerald"
-            iconBgColor="bg-emerald/10"
             delay={0.05}
           />
           <MetricCard
@@ -63,16 +83,12 @@ export default function DashboardPage() {
             value={metrics.monthlyExpense}
             currency={currency}
             icon={TrendingDown}
-            iconColor="text-danger"
-            iconBgColor="bg-danger/10"
             delay={0.1}
           />
           <MetricCard
             title={t('savingsRate')}
             value={metrics.savingsRate}
             icon={PiggyBank}
-            iconColor="text-primary"
-            iconBgColor="bg-primary/10"
             delay={0.15}
             isPercentage
           />
@@ -84,13 +100,18 @@ export default function DashboardPage() {
           <SpendingPieChart />
         </div>
 
-        {/* AI Insights */}
+        {/* AI Insights - kept for potential future use */}
         <AIInsights />
 
         {/* Recent transactions */}
         <RecentTransactions />
       </div>
       <TransactionDialog />
+      
+      {/* AI Chat Panel - Ready for Qwen2.5-7B-Instruct integration */}
+      <AIChatPanel />
     </AppShell>
   );
 }
+
+

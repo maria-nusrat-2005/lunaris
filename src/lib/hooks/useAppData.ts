@@ -85,7 +85,8 @@ export function useDashboardMetrics(): DashboardMetrics {
   let totalBudgetSpent = 0;
   currentBudgets.forEach((b) => {
     totalBudget += b.amount + b.rolloverAmount;
-    totalBudgetSpent += b.spent;
+    // budget.spent is unreliable, use derived categorySpending instead
+    totalBudgetSpent += categorySpending[b.categoryId] || 0;
   });
   const budgetUtilization = totalBudget > 0 ? (totalBudgetSpent / totalBudget) * 100 : 0;
 
@@ -231,4 +232,26 @@ export function useReducedMotion() {
   }, []);
 
   return prefersReducedMotion;
+}
+
+// Helper to get dynamic budget progress
+export function useBudgetProgress() {
+  const transactions = useTransactionStore((s) => s.transactions);
+  
+  const getSpentAmount = (categoryId: string, month: number, year: number) => {
+    return transactions
+      .filter((t) => {
+        const tDate = new Date(t.date);
+        return (
+          t.type === 'expense' &&
+          !t.isDeleted &&
+          t.categoryId === categoryId &&
+          tDate.getMonth() + 1 === month &&
+          tDate.getFullYear() === year
+        );
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+  };
+
+  return { getSpentAmount };
 }

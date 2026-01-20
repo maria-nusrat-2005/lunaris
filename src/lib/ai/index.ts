@@ -1,10 +1,20 @@
-// AI service exports
+// AI service exports - Hugging Face / Qwen2.5 Integration
 export { 
   generateSpendingInsights, 
   categorizeTransaction, 
-  isAIEnabled, 
-  saveAPIKey, 
+  saveAPIKeyEncrypted,
+  getAPIKeyDecrypted,
   removeAPIKey, 
-  getMaskedAPIKey 
+  getMaskedAPIKey,
+  isAPIKeyConfigured,
+  cancelActiveRequest,
+  sendChatMessage,
+  getFinancialContext,
 } from './aiService';
-export type { AIInsight, SpendingAnalysis } from './aiService';
+
+export type { 
+  AIInsight, 
+  SpendingAnalysis, 
+  ChatMessage,
+  FinancialContext,
+} from './aiService';

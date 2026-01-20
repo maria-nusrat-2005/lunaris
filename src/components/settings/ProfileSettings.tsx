@@ -20,12 +20,12 @@ import { useTranslation } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 import type { UserOccupation } from '@/lib/types';
 
-const occupationOptions: { value: UserOccupation; label: string; icon: string }[] = [
-  { value: 'student', label: 'Student', icon: '🎓' },
-  { value: 'freelancer', label: 'Freelancer', icon: '💼' },
-  { value: 'job_holder', label: 'Job Holder', icon: '👔' },
-  { value: 'housewife', label: 'Housewife', icon: '🏠' },
-  { value: 'other', label: 'Other', icon: '👤' },
+const occupationOptions = (t: any): { value: UserOccupation; label: string; icon: string }[] => [
+  { value: 'student', label: t('student'), icon: '🎓' },
+  { value: 'freelancer', label: t('freelance'), icon: '💼' },
+  { value: 'job_holder', label: t('job_holder'), icon: '👔' },
+  { value: 'housewife', label: t('housewife'), icon: '🏠' },
+  { value: 'other', label: t('other'), icon: '👤' },
 ];
 
 export function ProfileSettings() {
@@ -136,19 +136,19 @@ export function ProfileSettings() {
 
     // Validation
     if (!oldPassword) {
-      setPasswordError('Current password is required');
+      setPasswordError(t('currentPassword') + ' ' + t('noData').toLowerCase());
       return;
     }
     if (!newPassword) {
-      setPasswordError('New password is required');
+      setPasswordError(t('newPasswordLabel') + ' ' + t('noData').toLowerCase());
       return;
     }
     if (newPassword.length < 6) {
-      setPasswordError('New password must be at least 6 characters');
+      setPasswordError(t('passwordMinChar'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match');
+      setPasswordError(t('passMismatch'));
       return;
     }
 
@@ -178,10 +178,10 @@ export function ProfileSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
-            Profile Information
+            {t('profileInfo')}
           </CardTitle>
           <CardDescription>
-            Update your profile photo and display name
+            {t('profileDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -218,9 +218,9 @@ export function ProfileSettings() {
               />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-muted-foreground mb-1">Profile Photo</p>
+              <p className="text-sm text-muted-foreground mb-1">{t('profilePhoto')}</p>
               <p className="text-xs text-muted-foreground">
-                JPG, PNG or GIF. Max 2MB. Will be resized to 200x200.
+                {t('photoInfo')}
               </p>
               {avatar && (
                 <Button
@@ -230,7 +230,7 @@ export function ProfileSettings() {
                   onClick={() => setAvatar('')}
                 >
                   <X className="w-4 h-4 mr-1" />
-                  Remove Photo
+                  {t('removePhoto')}
                 </Button>
               )}
             </div>
@@ -238,39 +238,39 @@ export function ProfileSettings() {
 
           {/* Name Input */}
           <div className="space-y-2">
-            <Label htmlFor="name">Display Name</Label>
+            <Label htmlFor="name">{t('displayName')}</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder={t('enterName')}
             />
           </div>
 
           {/* Email (read-only) */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('email')}</Label>
             <Input
               id="email"
               value={user.email}
               disabled
               className="bg-muted"
             />
-            <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+            <p className="text-xs text-muted-foreground">{t('emailInfo')}</p>
           </div>
 
           {/* Occupation Select */}
           <div className="space-y-2">
             <Label htmlFor="occupation" className="flex items-center gap-2">
               <Briefcase className="w-4 h-4" />
-              Occupation
+              {t('occupation')}
             </Label>
             <Select value={occupation} onValueChange={(val: UserOccupation) => setOccupation(val)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select your occupation" />
+                <SelectValue placeholder={t('selectOccupation')} />
               </SelectTrigger>
               <SelectContent>
-                {occupationOptions.map((opt) => (
+                {occupationOptions(t).map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     <span className="flex items-center gap-2">
                       <span>{opt.icon}</span>
@@ -280,9 +280,6 @@ export function ProfileSettings() {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
-              Student occupation enables education expense tracking features
-            </p>
           </div>
 
           {/* Save Button */}
@@ -295,12 +292,12 @@ export function ProfileSettings() {
               {profileSuccess ? (
                 <>
                   <Check className="w-4 h-4" />
-                  Saved!
+                  {t('saved')}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  {profileLoading ? 'Saving...' : 'Save Changes'}
+                  {profileLoading ? t('saving') : t('saveChanges')}
                 </>
               )}
             </Button>
@@ -313,23 +310,23 @@ export function ProfileSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lock className="w-5 h-5" />
-            Change Password
+            {t('changePassword')}
           </CardTitle>
           <CardDescription>
-            Update your password to keep your account secure
+            {t('passwordDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Current Password */}
           <div className="space-y-2">
-            <Label htmlFor="oldPassword">Current Password</Label>
+            <Label htmlFor="oldPassword">{t('currentPassword')}</Label>
             <div className="relative">
               <Input
                 id="oldPassword"
                 type={showOldPassword ? 'text' : 'password'}
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
-                placeholder="Enter current password"
+                placeholder={t('currentPassword')}
               />
               <Button
                 type="button"
@@ -345,14 +342,14 @@ export function ProfileSettings() {
 
           {/* New Password */}
           <div className="space-y-2">
-            <Label htmlFor="newPassword">New Password</Label>
+            <Label htmlFor="newPassword">{t('newPasswordLabel')}</Label>
             <div className="relative">
               <Input
                 id="newPassword"
                 type={showNewPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password"
+                placeholder={t('newPasswordLabel')}
               />
               <Button
                 type="button"
@@ -368,13 +365,13 @@ export function ProfileSettings() {
 
           {/* Confirm Password */}
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <Label htmlFor="confirmPassword">{t('confirmNewPassword')}</Label>
             <Input
               id="confirmPassword"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
+              placeholder={t('confirmNewPassword')}
             />
           </div>
 
@@ -394,7 +391,7 @@ export function ProfileSettings() {
               animate={{ opacity: 1, y: 0 }}
               className="text-sm text-emerald-500"
             >
-              Password changed successfully!
+              {t('passChanged')}
             </motion.p>
           )}
 
@@ -405,7 +402,7 @@ export function ProfileSettings() {
             variant="outline"
             className="gap-2"
           >
-            {passwordLoading ? 'Changing...' : 'Change Password'}
+            {passwordLoading ? t('changing') : t('changePassword')}
           </Button>
         </CardContent>
       </Card>

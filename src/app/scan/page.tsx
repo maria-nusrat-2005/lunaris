@@ -1,92 +1,49 @@
-// Scan Page - QR Code and Receipt Scanner
+// Scan Page - Receipt Scanner with Tesseract OCR (Upload Only)
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ScanLine,
-  Camera,
-  CameraOff,
   Receipt,
   QrCode,
-  X,
   Upload,
-  Check,
+  Loader2,
   AlertCircle,
-  Zap,
+  FileImage,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ReceiptPreview } from '@/components/receipts';
 import { cn } from '@/lib/utils';
+import { parseReceiptImage, saveReceiptLocally } from '@/lib/ocr';
+import type { ParsedReceipt } from '@/lib/ocr';
+import { useIsMobile, useTranslation } from '@/lib/hooks';
+import { useSettingsStore, useTransactionStore, useCategoryStore } from '@/lib/stores';
+import { v4 as uuidv4 } from 'uuid';
 
-type ScanMode = 'qr' | 'receipt';
+type ScanState = 'idle' | 'processing' | 'preview' | 'error';
 
 export default function ScanPage() {
-  const [mode, setMode] = useState<ScanMode>('qr');
-  const [cameraActive, setCameraActive] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [scannedData, setScannedData] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const [scanState, setScanState] = useState<ScanState>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [parsedReceipt, setParsedReceipt] = useState<ParsedReceipt | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Start camera
-  const startCamera = async () => {
-    try {
-      setCameraError(null);
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-      setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-      setCameraActive(true);
-    } catch (err) {
-      console.error('Camera error:', err);
-      setCameraError('Could not access camera. Please check permissions.');
-    }
-  };
+  const settings = useSettingsStore((s) => s.settings);
+  const currency = settings?.currency || 'BDT';
 
-  // Stop camera
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-    setCameraActive(false);
-  };
+  const addTransaction = useTransactionStore((s) => s.addTransaction);
+  const categories = useCategoryStore((s) => s.categories);
 
-  // Capture image
-  const captureImage = () => {
-    if (videoRef.current && canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      const video = videoRef.current;
-      
-      canvasRef.current.width = video.videoWidth;
-      canvasRef.current.height = video.videoHeight;
-      ctx?.drawImage(video, 0, 0);
-      
-      const imageData = canvasRef.current.toDataURL('image/jpeg', 0.8);
-      setCapturedImage(imageData);
-      
-      // Demo: Simulate QR code detection
-      if (mode === 'qr') {
-        setTimeout(() => {
-          setScannedData('Demo QR Code: https://lunaris.app/pay?amount=500');
-        }, 1000);
-      } else {
-        setTimeout(() => {
-          setScannedData('Receipt captured! Amount detected: ৳1,250.00');
-        }, 1000);
-      }
-      
-      stopCamera();
-    }
-  };
+  // Get expense categories for receipt transactions
+  const expenseCategories = categories.filter((c) => c.type === 'expense');
+  const defaultCategory = expenseCategories.find((c) => c.name === 'Shopping') || expenseCategories[0];
 
   // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,35 +52,159 @@ export default function ScanPage() {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      setCapturedImage(event.target?.result as string);
-      
-      // Demo: Simulate processing
-      setTimeout(() => {
-        if (mode === 'qr') {
-          setScannedData('Demo QR Code: https://lunaris.app/pay?amount=500');
-        } else {
-          setScannedData('Receipt scanned! Total: ৳1,250.00');
-        }
-      }, 1500);
+      const imageData = event.target?.result as string;
+      processImage(imageData);
     };
     reader.readAsDataURL(file);
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  // Reset scan
+  // Process image with Tesseract OCR
+  const processImage = async (imageData: string) => {
+    setCapturedImage(imageData);
+    setScanState('processing');
+    setErrorMessage(null);
+
+    const result = await parseReceiptImage(imageData, true, currency);
+
+    if (result.success && result.data) {
+      setParsedReceipt(result.data);
+      setScanState('preview');
+    } else {
+      setErrorMessage(result.error || 'Failed to parse receipt');
+      setScanState('error');
+    }
+  };
+
+  // Create transaction from parsed receipt
+  const handleConfirmReceipt = async (receipt: ParsedReceipt) => {
+    setIsSaving(true);
+
+    try {
+      const transactionId = uuidv4();
+
+      // Create transaction
+      await addTransaction({
+        type: 'expense',
+        amount: receipt.amount,
+        currency: (receipt.currency as 'BDT' | 'USD' | 'EUR' | 'GBP' | 'INR') || currency,
+        categoryId: defaultCategory?.id || 'cat_shopping',
+        description: `Receipt from ${receipt.merchant}`,
+        date: new Date(receipt.date),
+        recurrence: 'none',
+      });
+
+      // Save receipt locally
+      if (capturedImage) {
+        saveReceiptLocally({
+          id: uuidv4(),
+          imageData: capturedImage,
+          parsedData: receipt,
+          transactionId,
+          createdAt: new Date(),
+        });
+      }
+
+      // Reset state
+      resetScan();
+    } catch (error) {
+      console.error('Failed to save transaction:', error);
+      setErrorMessage('Failed to create transaction');
+      setScanState('error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Reset scan state
   const resetScan = () => {
     setCapturedImage(null);
-    setScannedData(null);
-    setCameraError(null);
+    setParsedReceipt(null);
+    setErrorMessage(null);
+    setScanState('idle');
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [stream]);
+  const renderContent = () => {
+    // Processing
+    if (scanState === 'processing') {
+      return (
+        <div className="text-center py-12">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="font-medium">{t('analyzingReceipt')}</p>
+          <p className="text-sm text-muted-foreground">{t('timeTip')}</p>
+        </div>
+      );
+    }
+
+    // Preview parsed receipt
+    if (scanState === 'preview' && parsedReceipt) {
+      return (
+        <ReceiptPreview
+          receipt={parsedReceipt}
+          imageUrl={capturedImage || undefined}
+          onConfirm={handleConfirmReceipt}
+          onCancel={resetScan}
+          isLoading={isSaving}
+        />
+      );
+    }
+
+    // Error state
+    if (scanState === 'error') {
+      return (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-destructive" />
+          </div>
+          <p className="text-destructive font-medium mb-2">{errorMessage}</p>
+          <Button variant="outline" onClick={resetScan}>
+            {t('tryAgain')}
+          </Button>
+        </div>
+      );
+    }
+
+    // Idle state - show upload option
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground mb-6">
+          {t('scanUploadTip')}
+        </p>
+        
+        {/* Upload Area */}
+        <div
+          className="border-2 border-dashed border-border rounded-xl p-8 mb-4 hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <FileImage className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <p className="font-medium">{t('uploadImage')}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t('supportsImages')}
+          </p>
+        </div>
+
+        <Button
+          className="gap-2"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload className="w-4 h-4" />
+          {t('selectImage')}
+        </Button>
+        
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileUpload}
+        />
+      </div>
+    );
+  };
 
   return (
     <AppShell>
@@ -137,36 +218,11 @@ export default function ScanPage() {
         >
           <h1 className="text-3xl font-bold tracking-tight flex items-center justify-center gap-3">
             <ScanLine className="w-8 h-8 text-primary" />
-            Scan
+            {t('scanTitle')}
           </h1>
           <p className="text-muted-foreground mt-2">
-            Scan QR codes or capture receipts to add transactions
+            {t('scanDesc')}
           </p>
-        </motion.div>
-
-        {/* Mode Selection */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="flex justify-center gap-4"
-        >
-          <Button
-            variant={mode === 'qr' ? 'default' : 'outline'}
-            className="gap-2"
-            onClick={() => { setMode('qr'); resetScan(); }}
-          >
-            <QrCode className="w-4 h-4" />
-            QR Code
-          </Button>
-          <Button
-            variant={mode === 'receipt' ? 'default' : 'outline'}
-            className="gap-2"
-            onClick={() => { setMode('receipt'); resetScan(); }}
-          >
-            <Receipt className="w-4 h-4" />
-            Receipt
-          </Button>
         </motion.div>
 
         {/* Scanner Area */}
@@ -176,131 +232,18 @@ export default function ScanPage() {
           transition={{ duration: 0.4, delay: 0.2 }}
         >
           <Card className="shadow-soft overflow-hidden">
-            <CardContent className="p-0">
-              {/* Camera/Image Preview Area */}
-              <div className="relative aspect-[4/3] bg-muted flex items-center justify-center">
-                {cameraActive && !capturedImage ? (
-                  <>
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      className="w-full h-full object-cover"
-                    />
-                    {/* Scan overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <motion.div
-                        className="w-64 h-64 border-2 border-primary rounded-2xl"
-                        animate={{
-                          scale: [1, 1.02, 1],
-                          opacity: [0.8, 1, 0.8],
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                        }}
-                      />
-                      <motion.div
-                        className="absolute w-64 h-1 bg-primary/50"
-                        animate={{
-                          y: [-120, 120, -120],
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                          ease: 'linear',
-                        }}
-                      />
-                    </div>
-                    {/* Capture button */}
-                    <Button
-                      size="lg"
-                      className="absolute bottom-4 left-1/2 -translate-x-1/2 gap-2"
-                      onClick={captureImage}
-                    >
-                      <Zap className="w-5 h-5" />
-                      Capture
-                    </Button>
-                    {/* Close button */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white"
-                      onClick={stopCamera}
-                    >
-                      <X className="w-5 h-5" />
-                    </Button>
-                  </>
-                ) : capturedImage ? (
-                  <div className="relative w-full h-full">
-                    <img
-                      src={capturedImage}
-                      alt="Captured"
-                      className="w-full h-full object-cover"
-                    />
-                    {scannedData && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="absolute inset-0 bg-black/70 flex items-center justify-center"
-                      >
-                        <div className="text-center text-white p-6">
-                          <Check className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
-                          <p className="text-lg font-medium mb-2">Scan Successful!</p>
-                          <p className="text-sm opacity-80 mb-4">{scannedData}</p>
-                          <Button onClick={resetScan} variant="secondary">
-                            Scan Another
-                          </Button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-                ) : cameraError ? (
-                  <div className="text-center p-8">
-                    <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                    <p className="text-red-500 mb-4">{cameraError}</p>
-                    <Button variant="outline" onClick={startCamera}>
-                      Try Again
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center p-8">
-                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      {mode === 'qr' ? (
-                        <QrCode className="w-10 h-10 text-primary" />
-                      ) : (
-                        <Receipt className="w-10 h-10 text-primary" />
-                      )}
-                    </div>
-                    <p className="text-muted-foreground mb-6">
-                      {mode === 'qr' 
-                        ? 'Position the QR code within the frame'
-                        : 'Capture your receipt for automatic entry'
-                      }
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                      <Button className="gap-2" onClick={startCamera}>
-                        <Camera className="w-4 h-4" />
-                        Open Camera
-                      </Button>
-                      <Button variant="outline" className="gap-2" onClick={() => fileInputRef.current?.click()}>
-                        <Upload className="w-4 h-4" />
-                        Upload Image
-                      </Button>
-                    </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                  </div>
-                )}
-              </div>
-              
-              {/* Hidden canvas for capturing */}
-              <canvas ref={canvasRef} className="hidden" />
+            <CardContent className="p-6">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={scanState}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {renderContent()}
+                </motion.div>
+              </AnimatePresence>
             </CardContent>
           </Card>
         </motion.div>
@@ -314,23 +257,14 @@ export default function ScanPage() {
           <Card className="shadow-soft bg-gradient-to-br from-primary/5 to-purple-500/5">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                💡 Scanning Tips
+                {t('scanningTips')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
-              {mode === 'qr' ? (
-                <>
-                  <p>• Ensure the QR code is well-lit and clearly visible</p>
-                  <p>• Hold your phone steady for best results</p>
-                  <p>• Scan payment QR codes to quickly add expense entries</p>
-                </>
-              ) : (
-                <>
-                  <p>• Flatten the receipt before scanning</p>
-                  <p>• Ensure all text is visible within the frame</p>
-                  <p>• Good lighting helps with accurate text detection</p>
-                </>
-              )}
+              <p>• {t('tip1')}</p>
+              <p>• {t('tip2')}</p>
+              <p>• {t('tip3')}</p>
+              <p>• {t('tip4')}</p>
             </CardContent>
           </Card>
         </motion.div>

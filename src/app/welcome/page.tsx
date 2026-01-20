@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useTranslation } from '@/lib/hooks';
 import {
   Dialog,
   DialogContent,
@@ -129,7 +130,7 @@ const AnimatedLogo = () => (
 // Animated gradient text component
 const AnimatedGradientText = ({ children }: { children: React.ReactNode }) => (
   <motion.span
-    className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-[length:200%_auto]"
+    className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-500 to-cyan-500 bg-[length:200%_auto]"
     animate={{
       backgroundPosition: ['0% center', '200% center'],
     }}
@@ -143,82 +144,84 @@ const AnimatedGradientText = ({ children }: { children: React.ReactNode }) => (
   </motion.span>
 );
 
-const features = [
-  {
-    icon: Wallet,
-    title: 'Track Transactions',
-    description: 'Monitor your income and expenses with beautiful visualizations.',
-    color: '#3B82F6',
-    details: {
-      fullDescription: 'Keep a detailed record of every transaction. Categorize your spending, add notes, and see patterns in your financial habits.',
-      highlights: [
-        'Add income and expenses easily',
-        'Auto-categorization with AI',
-        'Beautiful charts and graphs',
-        'Search and filter transactions',
-        'Recurring transaction support',
-      ],
-    },
-  },
-  {
-    icon: PiggyBank,
-    title: 'Smart Budgets',
-    description: 'Set monthly budgets and get alerts when you\'re close to limits.',
-    color: '#10B981',
-    details: {
-      fullDescription: 'Create budgets for different spending categories and track your progress throughout the month.',
-      highlights: [
-        'Category-based budgets',
-        'Visual progress tracking',
-        'Over-budget alerts',
-        'Rollover unused amounts',
-        'Monthly overview dashboard',
-      ],
-    },
-  },
-  {
-    icon: Target,
-    title: 'Savings Goals',
-    description: 'Create goals and track your progress towards financial freedom.',
-    color: '#F59E0B',
-    details: {
-      fullDescription: 'Set savings goals for vacations, emergency funds, or any big purchase. Track your progress and celebrate when you reach them!',
-      highlights: [
-        'Multiple savings goals',
-        'Progress tracking',
-        'Contribution history',
-        'Goal completion celebrations',
-        'Target date tracking',
-      ],
-    },
-  },
-  {
-    icon: TrendingUp,
-    title: 'AI Insights',
-    description: 'Get smart recommendations powered by AI to optimize spending.',
-    color: '#8B5CF6',
-    details: {
-      fullDescription: 'Our AI analyzes your spending patterns and provides personalized recommendations to help you save more.',
-      highlights: [
-        'Spending pattern analysis',
-        'Personalized tips',
-        'Smart categorization',
-        'Trend predictions',
-        'Weekly insights digest',
-      ],
-    },
-  },
-];
-
-const benefits = [
-  'Completely offline - your data never leaves your device',
-  'Beautiful dark and light themes',
-  'Multi-currency support (BDT, USD, EUR, GBP, INR)',
-  'Export your data anytime (JSON/CSV)',
-  'Available in English and Bangla',
-];
-
 export default function LandingPage() {
+  const { t } = useTranslation();
+
+  const features = [
+    {
+      icon: Wallet,
+      title: t('trackTransactions'),
+      description: t('trackTransactionsDesc'),
+      color: '#3B82F6',
+      details: {
+        fullDescription: t('trackTransactionsFull'),
+        highlights: [
+          t('highlightAddIncome'),
+          t('highlightAutoCat'),
+          t('highlightCharts'),
+          t('highlightSearch'),
+          t('highlightRecurring'),
+        ],
+      },
+    },
+    {
+      icon: PiggyBank,
+      title: t('smartBudgets'),
+      description: t('smartBudgetsDesc'),
+      color: '#10B981',
+      details: {
+        fullDescription: t('smartBudgetsFull'),
+        highlights: [
+          t('highlightCatBudgets'),
+          t('highlightVisualProg'),
+          t('highlightOverAlerts'),
+          t('highlightRollover'),
+          t('highlightDashboard'),
+        ],
+      },
+    },
+    {
+      icon: Target,
+      title: t('savingsGoals'),
+      description: t('savingsGoalsDesc'),
+      color: '#F59E0B',
+      details: {
+        fullDescription: t('savingsGoalsFull'),
+        highlights: [
+          t('highlightMultipleGoals'),
+          t('highlightGoalProg'),
+          t('highlightContribHist'),
+          t('highlightCeleb'),
+          t('highlightTargetDate'),
+        ],
+      },
+    },
+    {
+      icon: TrendingUp,
+      title: t('aiInsights'),
+      description: t('aiInsightsDesc'),
+      color: '#06B6D4',
+      details: {
+        fullDescription: t('aiInsightsFull'),
+        highlights: [
+          t('highlightPattern'),
+          t('highlightTips'),
+          t('highlightSmartCat'),
+          t('highlightPredictions'),
+          t('highlightWeekly'),
+        ],
+      },
+    },
+  ];
+
+  const benefits = [
+    t('completelyOffline'),
+    t('chooseAppearance'), // Using matching existing keys where possible
+    t('multiCurrency'),
+    t('exportData'),
+    t('englishBangla'),
+  ];
+
   const [selectedFeature, setSelectedFeature] = useState<typeof features[0] | null>(null);
   const [showDemoVideo, setShowDemoVideo] = useState(false);
 
@@ -242,7 +245,7 @@ export default function LandingPage() {
         }}
       />
       <motion.div
-        className="absolute bottom-40 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
+        className="absolute bottom-40 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
         animate={{
           scale: [1.2, 1, 1.2],
           x: [0, -40, 0],
@@ -278,7 +281,7 @@ export default function LandingPage() {
             >
               💎
             </motion.span>
-            <span className="text-xl font-bold">Lunaris</span>
+            <span className="text-xl font-bold">{t('appName')}</span>
           </motion.div>
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -291,7 +294,7 @@ export default function LandingPage() {
                 whileTap={{ scale: 0.95 }}
               >
                 <Button className="gap-2">
-                  Login
+                  {t('login')}
                   <motion.span
                     animate={{ x: [0, 5, 0] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
@@ -335,7 +338,7 @@ export default function LandingPage() {
               >
                 <Shield className="w-4 h-4" />
               </motion.div>
-              Privacy-First • Offline-First
+              {t('privacyFirst')}
             </motion.div>
           </motion.div>
 
@@ -362,7 +365,7 @@ export default function LandingPage() {
               transition={{ delay: 0.4, duration: 0.5 }}
               className="block"
             >
-              Your Calm, Clear
+              {t('yourCalmClear')}
             </motion.span>
             <motion.span
               initial={{ opacity: 0, y: 20 }}
@@ -371,7 +374,7 @@ export default function LandingPage() {
               className="block"
             >
               <AnimatedGradientText>
-                Finance Companion
+                {t('financeCompanion')}
               </AnimatedGradientText>
             </motion.span>
           </motion.h1>
@@ -383,8 +386,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8, duration: 0.5 }}
           >
-            A beautiful, privacy-focused personal finance app. Track income, expenses, 
-            budgets, and savings goals with complete local data ownership.
+            {t('appHeroDesc')}
           </motion.p>
 
           {/* CTA Buttons with pulse and hover effects */}
@@ -411,7 +413,7 @@ export default function LandingPage() {
                 className="rounded-lg"
               >
                 <Button size="lg" className="gap-2 text-lg px-8">
-                  Get Started
+                  {t('getStarted')}
                   <motion.span
                     animate={{ x: [0, 5, 0] }}
                     transition={{ duration: 1, repeat: Infinity }}
@@ -434,7 +436,7 @@ export default function LandingPage() {
                 >
                   <Play className="w-5 h-5" />
                 </motion.span>
-                Watch Demo
+                {t('watchDemo')}
               </Button>
             </motion.div>
           </motion.div>
@@ -451,7 +453,7 @@ export default function LandingPage() {
               animate={{ y: [0, 8, 0] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              <span className="mb-2">Scroll to explore</span>
+              <span className="mb-2">{t('scrollToExplore')}</span>
               <motion.div
                 className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2"
               >
@@ -475,9 +477,9 @@ export default function LandingPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl font-bold mb-4">Everything You Need</h2>
+            <h2 className="text-3xl font-bold mb-4">{t('everythingYouNeed')}</h2>
             <p className="text-muted-foreground text-lg">
-              Powerful features to take control of your finances
+              {t('powerfulFeatures')}
             </p>
           </motion.div>
           
@@ -491,26 +493,21 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  whileHover={{ 
-                    scale: 1.05,
-                    y: -8,
+                   whileHover={{ 
+                    scale: 1.02,
+                    y: -10,
                   }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setSelectedFeature(feature)}
-                  className="cursor-pointer"
+                  className="cursor-pointer h-full"
                 >
                   <Card 
-                    className="h-full shadow-soft transition-all duration-300 hover:shadow-2xl border-2 border-transparent hover:border-primary/30 group"
+                    className="h-full shadow-soft transition-all duration-300 hover:shadow-2xl border-2 border-transparent group relative overflow-hidden"
                     style={{
                       '--hover-color': feature.color,
                     } as React.CSSProperties}
                   >
-                    <CardContent className="p-6 text-center relative overflow-hidden">
-                      {/* Gradient overlay on hover */}
-                      <div 
-                        className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"
-                        style={{ backgroundColor: feature.color }}
-                      />
-                      
+                    <CardContent className="p-6 text-center relative z-10">
                       <motion.div 
                         className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 relative z-10"
                         style={{ backgroundColor: `${feature.color}20` }}
@@ -532,7 +529,7 @@ export default function LandingPage() {
                         initial={{ y: 10 }}
                         whileHover={{ y: 0 }}
                       >
-                        <span>Click to learn more</span>
+                        <span>{t('clickToLearnMore')}</span>
                         <ArrowRight className="w-3 h-3" />
                       </motion.div>
                     </CardContent>
@@ -570,7 +567,7 @@ export default function LandingPage() {
               </DialogHeader>
               
               <div className="mt-6">
-                <h4 className="font-semibold mb-3">Key Features:</h4>
+                <h4 className="font-semibold mb-3">{t('keyFeatures')}</h4>
                 <div className="space-y-2">
                   {selectedFeature.details.highlights.map((highlight, i) => (
                     <motion.div
@@ -596,11 +593,11 @@ export default function LandingPage() {
                   className="flex-1"
                   onClick={() => setSelectedFeature(null)}
                 >
-                  Close
+                  {t('close')}
                 </Button>
                 <Link href="/login" className="flex-1">
                   <Button className="w-full gap-2">
-                    Get Started
+                    {t('getStarted')}
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
@@ -616,8 +613,8 @@ export default function LandingPage() {
           <Dialog open={showDemoVideo} onOpenChange={setShowDemoVideo}>
             <DialogContent className="max-w-4xl w-full p-0 bg-black/95 border-primary/20">
               <DialogHeader className="sr-only">
-                <DialogTitle>Lunaris Demo Video</DialogTitle>
-                <DialogDescription>A walkthrough of Lunaris features</DialogDescription>
+                <DialogTitle>{t('lunarisAppTour')}</DialogTitle>
+                <DialogDescription>{t('seeEasyManage')}</DialogDescription>
               </DialogHeader>
               
               {/* Close button */}
@@ -641,7 +638,7 @@ export default function LandingPage() {
                 {/* Video element - using webp as animated image */}
                 <img
                   src="/demo-video.webp"
-                  alt="Lunaris Demo"
+                  alt={t('watchDemo')}
                   className="w-full h-full object-contain bg-black"
                 />
                 
@@ -663,8 +660,8 @@ export default function LandingPage() {
                       💎
                     </motion.span>
                     <div>
-                      <h3 className="text-white font-semibold text-lg">Lunaris App Tour</h3>
-                      <p className="text-white/60 text-sm">See how easy it is to manage your finances</p>
+                      <h3 className="text-white font-semibold text-lg">{t('lunarisAppTour')}</h3>
+                      <p className="text-white/60 text-sm">{t('seeEasyManage')}</p>
                     </div>
                   </div>
                 </div>
@@ -677,11 +674,11 @@ export default function LandingPage() {
                   className="gap-2 border-white/20 text-white hover:bg-white/10"
                   onClick={() => setShowDemoVideo(false)}
                 >
-                  Close
+                  {t('close')}
                 </Button>
                 <Link href="/login">
                   <Button className="gap-2">
-                    Get Started
+                    {t('getStarted')}
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
@@ -700,9 +697,9 @@ export default function LandingPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl font-bold mb-4">Why Lunaris?</h2>
+            <h2 className="text-3xl font-bold mb-4">{t('whyLunaris')}</h2>
             <p className="text-muted-foreground text-lg">
-              Built with privacy and simplicity in mind
+              {t('builtWithPrivacy')}
             </p>
           </motion.div>
           
@@ -737,7 +734,7 @@ export default function LandingPage() {
             <Card className="shadow-xl overflow-hidden relative">
               {/* Animated background glow */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-primary/20 to-purple-500/20"
+                className="absolute inset-0 bg-gradient-to-br from-primary/20 to-cyan-500/20"
                 animate={{
                   opacity: [0.3, 0.6, 0.3],
                 }}
@@ -747,7 +744,7 @@ export default function LandingPage() {
                   ease: 'easeInOut',
                 }}
               />
-              <CardContent className="p-8 md:p-12 text-center bg-gradient-to-br from-primary/10 to-purple-500/10 relative z-10">
+              <CardContent className="p-8 md:p-12 text-center bg-gradient-to-br from-primary/10 to-cyan-500/10 relative z-10">
                 {/* Animated Logo */}
                 <motion.div 
                   className="mb-6"
@@ -770,7 +767,7 @@ export default function LandingPage() {
                   viewport={{ once: true }}
                   transition={{ delay: 0.2 }}
                 >
-                  Ready to Get Started?
+                  {t('readyToGetStarted')}
                 </motion.h2>
                 <motion.p 
                   className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto"
@@ -779,7 +776,7 @@ export default function LandingPage() {
                   viewport={{ once: true }}
                   transition={{ delay: 0.3 }}
                 >
-                  Create your account in seconds and start taking control of your finances today.
+                  {t('createAccountSeconds')}
                 </motion.p>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -804,7 +801,7 @@ export default function LandingPage() {
                       }}
                     >
                       <Button size="lg" className="gap-2 text-lg px-8">
-                        Create Free Account
+                        {t('createFreeAccount')}
                         <motion.span
                           animate={{ x: [0, 5, 0] }}
                           transition={{ duration: 1, repeat: Infinity }}
@@ -824,8 +821,8 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="py-8 px-4 border-t border-border">
         <div className="container mx-auto text-center text-sm text-muted-foreground">
-          <p>© 2024 Lunaris. Made with ❤️</p>
-          <p className="mt-1">Your data stays on your device. Always.</p>
+          <p>{t('copyright')}</p>
+          <p className="mt-1">{t('dataStaysAlways')}</p>
         </div>
       </footer>
     </div>

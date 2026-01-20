@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Target, CheckCircle2, Sparkles, TrendingUp, Calendar, MoreVertical, Trash2 } from 'lucide-react';
+import { Plus, Target, CheckCircle2, Sparkles, TrendingUp, Calendar, MoreVertical, Trash2, Edit } from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { useGoalStore, useSettingsStore } from '@/lib/stores';
+import { useGoalStore, useSettingsStore, useUIStore } from '@/lib/stores';
 import { useTranslation } from '@/lib/hooks';
 import { formatCurrency, formatDate, formatPercentage } from '@/lib/utils/helpers';
 
@@ -72,6 +72,7 @@ const goalColors = ['#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#EF4
 export default function GoalsPage() {
   const goals = useGoalStore((s) => s.goals);
   const addGoal = useGoalStore((s) => s.addGoal);
+  const updateGoal = useGoalStore((s) => s.updateGoal);
   const addContribution = useGoalStore((s) => s.addContribution);
   const deleteGoal = useGoalStore((s) => s.deleteGoal);
   const getGoalProgress = useGoalStore((s) => s.getGoalProgress);
@@ -79,8 +80,19 @@ export default function GoalsPage() {
   const clearJustCompletedGoal = useGoalStore((s) => s.clearJustCompletedGoal);
   const settings = useSettingsStore((s) => s.settings);
   const { t, language } = useTranslation();
+  const { 
+    activeDialog, 
+    openDialog, 
+    closeDialog, 
+    editingGoalId,
+    editingGoalData,
+    openEditGoal,
+    closeEditGoal
+  } = useUIStore();
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const isDialogOpen = activeDialog === 'goal';
+  const isEdit = !!editingGoalId;
+
   const [contributionDialogGoalId, setContributionDialogGoalId] = useState<string | null>(null);
   const [contributionAmount, setContributionAmount] = useState('');
   const [formData, setFormData] = useState({
@@ -104,21 +116,59 @@ export default function GoalsPage() {
     }
   }, [justCompletedGoalId, clearJustCompletedGoal]);
 
+  // Effect to populate form for editing
+  useEffect(() => {
+    if (isDialogOpen) {
+      if (editingGoalId && editingGoalData) {
+        setFormData({
+          name: editingGoalData.name,
+          targetAmount: editingGoalData.targetAmount.toString(),
+          deadline: editingGoalData.deadline ? new Date(editingGoalData.deadline).toISOString().split('T')[0] : '',
+          icon: editingGoalData.icon || 'Target',
+          color: editingGoalData.color || '#3B82F6',
+        });
+      } else {
+        setFormData({
+          name: '',
+          targetAmount: '',
+          deadline: '',
+          icon: 'Target',
+          color: '#3B82F6',
+        });
+      }
+    }
+  }, [isDialogOpen, editingGoalId, editingGoalData]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.targetAmount) return;
 
-    await addGoal({
-      name: formData.name,
-      targetAmount: parseFloat(formData.targetAmount),
-      currency,
-      deadline: formData.deadline ? new Date(formData.deadline) : undefined,
-      icon: formData.icon,
-      color: formData.color,
-    });
+    if (isEdit && editingGoalId) {
+        await updateGoal(editingGoalId, {
+            name: formData.name,
+            targetAmount: parseFloat(formData.targetAmount),
+            deadline: formData.deadline ? new Date(formData.deadline) : undefined,
+            icon: formData.icon,
+            color: formData.color,
+        });
+        closeEditGoal();
+    } else {
+        await addGoal({
+            name: formData.name,
+            targetAmount: parseFloat(formData.targetAmount),
+            currency,
+            deadline: formData.deadline ? new Date(formData.deadline) : undefined,
+            icon: formData.icon,
+            color: formData.color,
+        });
+        setFormData({ name: '', targetAmount: '', deadline: '', icon: 'Target', color: '#3B82F6' });
+        closeDialog();
+    }
+  };
 
-    setFormData({ name: '', targetAmount: '', deadline: '', icon: 'Target', color: '#3B82F6' });
-    setIsDialogOpen(false);
+  const handleOpenAdd = () => {
+    closeEditGoal();
+    openDialog('goal');
   };
 
   const handleContribution = async (e: React.FormEvent) => {
@@ -159,7 +209,7 @@ export default function GoalsPage() {
                   {goal.deadline && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {formatDate(goal.deadline)}
+                      {formatDate(goal.deadline, 'dd/MM/yyyy', language)}
                     </p>
                   )}
                 </div>
@@ -180,6 +230,10 @@ export default function GoalsPage() {
                     <DropdownMenuItem onClick={() => setContributionDialogGoalId(goal.id)}>
                       <TrendingUp className="w-4 h-4 mr-2" />
                       {t('addSavings')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEditGoal(goal.id, goal)}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      {t('edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive" onClick={() => deleteGoal(goal.id)}>
                       <Trash2 className="w-4 h-4 mr-2" />
@@ -206,7 +260,7 @@ export default function GoalsPage() {
                 } as React.CSSProperties}
               />
               <p className="text-right text-sm text-muted-foreground mt-1">
-                {formatPercentage(progress)}
+                {formatPercentage(progress, 1, language)}
               </p>
             </div>
             
@@ -250,16 +304,16 @@ export default function GoalsPage() {
           <h1 className="text-3xl font-bold tracking-tight">{t('savingsGoals')}</h1>
           <p className="text-muted-foreground">{t('trackProgress')}</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => !open && closeEditGoal()}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={handleOpenAdd}>
               <Plus className="w-4 h-4" />
               {t('newGoal')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{t('createSavingsGoal')}</DialogTitle>
+              <DialogTitle>{isEdit ? t('editGoal') : t('createSavingsGoal')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6 mt-4">
               <div className="space-y-2">
@@ -313,11 +367,11 @@ export default function GoalsPage() {
               </div>
 
               <div className="flex gap-3 pt-4">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setIsDialogOpen(false)}>
+                <Button type="button" variant="outline" className="flex-1" onClick={() => closeEditGoal()}>
                   {t('cancel')}
                 </Button>
                 <Button type="submit" className="flex-1">
-                  {t('createGoal')}
+                  {isEdit ? t('update') : t('createGoal')}
                 </Button>
               </div>
             </form>
@@ -382,7 +436,7 @@ export default function GoalsPage() {
                   <p className="text-muted-foreground mb-4">
                     {t('setGoalDesc')}
                   </p>
-                  <Button onClick={() => setIsDialogOpen(true)}>
+                  <Button onClick={() => handleOpenAdd()}>
                     <Plus className="w-4 h-4 mr-2" />
                     {t('createFirstGoal')}
                   </Button>

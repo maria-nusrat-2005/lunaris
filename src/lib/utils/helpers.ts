@@ -18,6 +18,13 @@ const currencyPosition: Record<Currency, 'before' | 'after'> = {
   INR: 'before',
 };
 
+// Internal number localizer
+export function localizeNumbers(str: string, language: Language): string {
+  if (language !== 'bn') return str;
+  const banglaDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return str.replace(/\d/g, (digit) => banglaDigits[parseInt(digit)]);
+}
+
 // Format currency with language awareness - uses English numerals for English language
 export function formatCurrency(amount: number, currency: Currency = 'BDT', language: Language = 'en'): string {
   const symbol = currencySymbols[currency];
@@ -53,21 +60,23 @@ export function formatCompactCurrency(amount: number, currency: Currency = 'BDT'
   }
 
   return position === 'before'
-    ? `${symbol}${formatted}`
-    : `${formatted}${symbol}`;
+    ? `${symbol}${localizeNumbers(formatted, language)}`
+    : `${localizeNumbers(formatted, language)}${symbol}`;
 }
 
 // Date formatting
-export function formatDate(date: Date | string, format: string = 'dd/MM/yyyy'): string {
+export function formatDate(date: Date | string, format: string = 'dd/MM/yyyy', language: Language = 'en'): string {
   const d = new Date(date);
   const day = d.getDate().toString().padStart(2, '0');
   const month = (d.getMonth() + 1).toString().padStart(2, '0');
   const year = d.getFullYear();
 
-  return format
+  const formatted = format
     .replace('dd', day)
     .replace('MM', month)
     .replace('yyyy', year.toString());
+
+  return localizeNumbers(formatted, language);
 }
 
 export function formatRelativeDate(date: Date | string, language: Language = 'en'): string {
@@ -79,10 +88,10 @@ export function formatRelativeDate(date: Date | string, language: Language = 'en
   if (language === 'bn') {
     if (days === 0) return 'আজ';
     if (days === 1) return 'গতকাল';
-    if (days < 7) return `${days} দিন আগে`;
-    if (days < 30) return `${Math.floor(days / 7)} সপ্তাহ আগে`;
-    if (days < 365) return `${Math.floor(days / 30)} মাস আগে`;
-    return `${Math.floor(days / 365)} বছর আগে`;
+    if (days < 7) return localizeNumbers(`${days} দিন আগে`, 'bn');
+    if (days < 30) return localizeNumbers(`${Math.floor(days / 7)} সপ্তাহ আগে`, 'bn');
+    if (days < 365) return localizeNumbers(`${Math.floor(days / 30)} মাস আগে`, 'bn');
+    return localizeNumbers(`${Math.floor(days / 365)} বছর আগে`, 'bn');
   }
 
   if (days === 0) return 'Today';
@@ -93,22 +102,25 @@ export function formatRelativeDate(date: Date | string, language: Language = 'en
   return `${Math.floor(days / 365)} years ago`;
 }
 
-export function getMonthName(month: number): string {
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  return months[month - 1];
+export function getMonthName(month: number, language: Language = 'en'): string {
+  const months: Record<Language, string[]> = {
+    en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    bn: ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর']
+  };
+  return months[language][month - 1];
 }
 
-export function getShortMonthName(month: number): string {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return months[month - 1];
+export function getShortMonthName(month: number, language: Language = 'en'): string {
+  const months: Record<Language, string[]> = {
+    en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    bn: ['জানু', 'ফেব্রু', 'মার্চ', 'এপ্রি', 'মে', 'জুন', 'জুলা', 'আগ', 'সেপ্টে', 'অক্টো', 'নভে', 'ডিসে']
+  };
+  return months[language][month - 1];
 }
 
 // Percentage formatting
-export function formatPercentage(value: number, decimals: number = 1): string {
-  return `${value.toFixed(decimals)}%`;
+export function formatPercentage(value: number, decimals: number = 1, language: Language = 'en'): string {
+  return localizeNumbers(`${value.toFixed(decimals)}%`, language);
 }
 
 // Calculate percentage

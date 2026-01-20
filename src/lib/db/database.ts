@@ -191,21 +191,6 @@ export async function initializeDefaultCategories(): Promise<void> {
       updatedAt: now,
     },
     {
-      id: 'cat_education',
-      name: 'Education',
-      icon: 'GraduationCap',
-      color: '#0EA5E9',
-      type: 'expense',
-      isDefault: true,
-      subcategories: [
-        { id: 'sub_courses', name: 'Courses', categoryId: 'cat_education' },
-        { id: 'sub_books', name: 'Books', categoryId: 'cat_education' },
-        { id: 'sub_tuition', name: 'Tuition', categoryId: 'cat_education' },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
       id: 'cat_bills',
       name: 'Bills & Fees',
       icon: 'Receipt',

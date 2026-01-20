@@ -29,7 +29,7 @@ export default function TransactionsPage() {
   const deleteTransaction = useTransactionStore((s) => s.deleteTransaction);
   const categories = useCategoryStore((s) => s.categories);
   const settings = useSettingsStore((s) => s.settings);
-  const { openAddTransaction } = useUIStore();
+  const { openAddTransaction, openEditTransaction } = useUIStore();
   const { canEdit, canDelete } = useAuthStore();
   const { t, language } = useTranslation();
 
@@ -171,7 +171,7 @@ export default function TransactionsPage() {
                   <Card className="shadow-soft overflow-hidden">
                     <CardHeader className="py-3 bg-muted/30">
                       <CardTitle className="text-sm font-medium text-muted-foreground">
-                        {formatRelativeDate(dateKey, language)} • {formatDate(dateKey)}
+                        {formatRelativeDate(dateKey, language)} • {formatDate(dateKey, 'dd/MM/yyyy', language)}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 divide-y divide-border">
@@ -197,10 +197,10 @@ export default function TransactionsPage() {
 
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate">
-                                {transaction.description || category?.name || t('transactions')}
+                                {transaction.description || (category ? t(category.name.toLowerCase().replace(/ & /g, '').replace(/ /g, '')) : t('transactions'))}
                               </p>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <span>{category?.name}</span>
+                                <span>{category ? t(category.name.toLowerCase().replace(/ & /g, '').replace(/ /g, '')) : t('other')}</span>
                                 {transaction.recurrence !== 'none' && (
                                   <Badge variant="secondary" className="text-xs">
                                     {t(transaction.recurrence)}
@@ -229,7 +229,7 @@ export default function TransactionsPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openEditTransaction(transaction.id, transaction)}>
                                     <Edit className="w-4 h-4 mr-2" />
                                     {t('edit')}
                                   </DropdownMenuItem>

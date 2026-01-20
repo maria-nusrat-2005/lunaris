@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useDashboardMetrics, useTranslation } from '@/lib/hooks';
 import { useSettingsStore } from '@/lib/stores';
-import { generateSpendingInsights, isAIEnabled } from '@/lib/ai';
+import { generateSpendingInsights, isAPIKeyConfigured } from '@/lib/ai';
 import type { SpendingAnalysis, AIInsight } from '@/lib/ai';
 
 const insightIcons = {
@@ -23,23 +23,24 @@ const insightColors = {
   tip: 'bg-blue-500/10 text-blue-500',
   warning: 'bg-amber-500/10 text-amber-500',
   suggestion: 'bg-emerald/10 text-emerald',
-  insight: 'bg-purple-500/10 text-purple-500',
+  insight: 'bg-cyan-500/10 text-cyan-600',
 };
 
 export function AIInsights() {
   const { t, language } = useTranslation();
   const metrics = useDashboardMetrics();
+  const settings = useSettingsStore((s) => s.settings);
   const [analysis, setAnalysis] = useState<SpendingAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [aiAvailable, setAiAvailable] = useState(false);
 
-  useEffect(() => {
-    setAiAvailable(isAIEnabled());
-  }, []);
+  // Derive AI state from settings
+  const aiEnabled = settings?.aiEnabled ?? false;
+  const isConfigured = isAPIKeyConfigured();
+  const aiAvailable = aiEnabled && isConfigured;
 
   const loadInsights = async () => {
-    if (!isAIEnabled()) return;
+    if (!aiAvailable) return;
 
     setLoading(true);
     try {
@@ -52,6 +53,7 @@ export function AIInsights() {
           percentage: c.percentage,
         })),
         metrics.savingsRate,
+        aiEnabled, // Pass aiEnabled as required parameter
         language
       );
       setAnalysis(result);
@@ -73,23 +75,23 @@ export function AIInsights() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.6 }}
     >
-      <Card className="shadow-soft border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-purple-600/10">
+      <Card className="shadow-soft border-border/50 bg-gradient-to-br from-secondary/30 to-background">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-500" />
-              AI Insights
+              <Sparkles className="w-5 h-5 text-cyan-600" />
+              {t('aiInsights')}
             </CardTitle>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-1 text-purple-500 hover:text-purple-600"
+                className="gap-1 text-cyan-600 hover:text-cyan-700"
                 onClick={loadInsights}
                 disabled={loading}
               >
                 <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
-                {loading ? 'Analyzing...' : 'Analyze'}
+                {loading ? t('analyzing') : t('analyze')}
               </Button>
               <Button
                 variant="ghost"
@@ -149,12 +151,12 @@ export function AIInsights() {
                 {analysis.recommendations.length > 0 && (
                   <div className="pt-2 border-t border-border/50">
                     <p className="text-xs font-medium text-muted-foreground mb-2">
-                      Recommendations:
+                      {t('recommendations')}
                     </p>
                     <ul className="space-y-1">
                       {analysis.recommendations.map((rec, index) => (
                         <li key={index} className="text-sm flex items-start gap-2">
-                          <span className="text-purple-500">•</span>
+                          <span className="text-cyan-500">•</span>
                           {rec}
                         </li>
                       ))}
@@ -171,7 +173,7 @@ export function AIInsights() {
                 className="text-center py-4"
               >
                 <p className="text-sm text-muted-foreground">
-                  Click "Analyze" to get AI-powered insights about your spending habits and personalized recommendations.
+                  {t('aiInsightsPlaceholder')}
                 </p>
               </motion.div>
             )}

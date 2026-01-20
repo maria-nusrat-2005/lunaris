@@ -7,6 +7,7 @@ export {
   useWindowSize,
   useIsMobile,
   useReducedMotion,
+  useBudgetProgress,
 } from './useAppData';
 
 export { useTranslation } from './useTranslation';

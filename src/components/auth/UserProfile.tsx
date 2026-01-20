@@ -1,10 +1,8 @@
 // User Profile dropdown component
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { User, Shield, Users, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { User, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,25 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/stores';
 import { useTranslation } from '@/lib/hooks';
-import type { UserRole, UserOccupation } from '@/lib/types';
-
-const roleConfig: Record<UserRole, { icon: typeof User; color: string; bgColor: string; label: string }> = {
-  admin: { icon: Shield, color: 'text-purple-500', bgColor: 'bg-purple-500/10', label: 'Admin' },
-  user: { icon: User, color: 'text-primary', bgColor: 'bg-primary/10', label: 'User' },
-  viewer: { icon: Users, color: 'text-muted-foreground', bgColor: 'bg-muted', label: 'Viewer' },
-};
-
-const occupationLabels: Record<UserOccupation, string> = {
-  student: '🎓 Student',
-  freelancer: '💼 Freelancer',
-  job_holder: '👔 Job Holder',
-  housewife: '🏠 Housewife',
-  other: '👤 Other',
-};
 
 export function UserProfile() {
   const router = useRouter();
@@ -46,9 +28,6 @@ export function UserProfile() {
       </Button>
     );
   }
-
-  const roleInfo = roleConfig[user.role];
-  const RoleIcon = roleInfo.icon;
 
   const getInitials = (name: string) => {
     return name
@@ -70,8 +49,7 @@ export function UserProfile() {
         <Button variant="ghost" className="gap-2 px-2">
           {/* Avatar */}
           <div className={cn(
-            'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
-            roleInfo.bgColor, roleInfo.color
+            'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-primary/10 text-primary'
           )}>
             {user.avatar ? (
               <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
@@ -81,9 +59,6 @@ export function UserProfile() {
           </div>
           <div className="hidden md:block text-left">
             <p className="text-sm font-medium leading-none">{user.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {user.occupation ? occupationLabels[user.occupation] : roleInfo.label}
-            </p>
           </div>
           <ChevronDown className="w-4 h-4 text-muted-foreground hidden md:block" />
         </Button>
@@ -92,8 +67,7 @@ export function UserProfile() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex items-center gap-3">
             <div className={cn(
-              'w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium',
-              roleInfo.bgColor, roleInfo.color
+              'w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium bg-primary/10 text-primary'
             )}>
               {getInitials(user.name)}
             </div>
@@ -103,14 +77,6 @@ export function UserProfile() {
             </div>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="gap-2" disabled>
-          <RoleIcon className={cn('w-4 h-4', roleInfo.color)} />
-          <span>Role: </span>
-          <Badge variant="secondary" className="text-xs">
-            {roleInfo.label}
-          </Badge>
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="gap-2" onClick={() => router.push('/settings')}>
           <Settings className="w-4 h-4" />

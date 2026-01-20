@@ -8,7 +8,7 @@ import * as LucideIcons from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useTransactionStore, useCategoryStore, useSettingsStore } from '@/lib/stores';
+import { useTransactionStore, useCategoryStore, useSettingsStore, useUIStore } from '@/lib/stores';
 import { useTranslation } from '@/lib/hooks';
 import { formatCurrency, formatRelativeDate } from '@/lib/utils/helpers';
 
@@ -16,6 +16,7 @@ export function RecentTransactions() {
   const transactions = useTransactionStore((s) => s.transactions);
   const categories = useCategoryStore((s) => s.categories);
   const settings = useSettingsStore((s) => s.settings);
+  const { openEditTransaction } = useUIStore();
   const { t, language } = useTranslation();
 
   const recentTransactions = transactions.slice(0, 5);
@@ -79,7 +80,8 @@ export function RecentTransactions() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="flex items-center gap-4 p-3 rounded-xl hover:bg-muted/50 transition-colors"
+                className="group flex items-center gap-4 p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => openEditTransaction(transaction.id, transaction)}
               >
                 {/* Category icon */}
                 <div
@@ -92,10 +94,10 @@ export function RecentTransactions() {
                 {/* Transaction info */}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">
-                    {transaction.description || category?.name || t('transactions')}
+                    {transaction.description || (category ? t(category.name.toLowerCase().replace(/ & /g, '').replace(/ /g, '')) : t('transactions'))}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {category?.name} • {formatRelativeDate(transaction.date, language)}
+                    {category ? t(category.name.toLowerCase().replace(/ & /g, '').replace(/ /g, '')) : t('other')} • {formatRelativeDate(transaction.date, language)}
                   </p>
                 </div>
 

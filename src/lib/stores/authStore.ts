@@ -1,32 +1,15 @@
 // Authentication Store
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, UserRole } from '@/lib/types';
+import type { User } from '@/lib/types';
 import { createWelcomeNotification } from './notificationStore';
 
 // Default demo users
 const DEFAULT_USERS: User[] = [
   {
-    id: 'admin-001',
-    email: 'admin@clarity.com',
-    name: 'Admin User',
-    role: 'admin',
-    avatar: '',
-    createdAt: new Date(),
-  },
-  {
     id: 'user-001',
     email: 'user@clarity.com',
     name: 'Demo User',
-    role: 'user',
-    avatar: '',
-    createdAt: new Date(),
-  },
-  {
-    id: 'viewer-001',
-    email: 'viewer@clarity.com',
-    name: 'Demo Viewer',
-    role: 'viewer',
     avatar: '',
     createdAt: new Date(),
   },
@@ -34,9 +17,7 @@ const DEFAULT_USERS: User[] = [
 
 // Default passwords (in real app, these would be hashed)
 const DEFAULT_PASSWORDS: Record<string, string> = {
-  'admin@clarity.com': 'admin123',
   'user@clarity.com': 'user123',
-  'viewer@clarity.com': 'viewer123',
 };
 
 interface RegisteredUser extends User {
@@ -51,12 +32,12 @@ interface AuthStore {
   
   // Actions
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (name: string, email: string, password: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (updates: Partial<Pick<User, 'name' | 'avatar' | 'occupation'>>) => void;
   updatePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   
-  // Permission helpers
+  // Permission helpers (Simplifying to always true now that roles are gone)
   canEdit: () => boolean;
   canDelete: () => boolean;
   canManageData: () => boolean;
@@ -108,7 +89,7 @@ export const useAuthStore = create<AuthStore>()(
         return { success: false, error: 'Invalid email or password' };
       },
 
-      register: async (name, email, password, role = 'user') => {
+      register: async (name, email, password) => {
         set({ isLoading: true });
         
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -130,7 +111,6 @@ export const useAuthStore = create<AuthStore>()(
           id: crypto.randomUUID(),
           email: normalizedEmail,
           name: name.trim(),
-          role,
           avatar: '',
           password,
           createdAt: new Date(),
@@ -153,7 +133,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       updateProfile: (updates) => {
-        const { user, registeredUsers } = get();
+        const { user } = get();
         if (!user) return;
         
         // Update user state
@@ -172,12 +152,9 @@ export const useAuthStore = create<AuthStore>()(
         
         // Check if it's a default user
         if (DEFAULT_PASSWORDS[user.email] !== undefined) {
-          // For default users, verify old password matches
           if (DEFAULT_PASSWORDS[user.email] !== oldPassword) {
             return { success: false, error: 'Current password is incorrect' };
           }
-          // Note: Default users can't actually change password in this demo
-          // Create a new registered user entry instead
           const registeredUser = registeredUsers.find(u => u.email === user.email);
           if (registeredUser) {
             if (registeredUser.password !== oldPassword) {
@@ -189,7 +166,6 @@ export const useAuthStore = create<AuthStore>()(
               ),
             }));
           } else {
-            // Convert default user to registered user with new password
             const newUser: RegisteredUser = {
               ...user,
               password: newPassword,
@@ -201,7 +177,6 @@ export const useAuthStore = create<AuthStore>()(
           return { success: true };
         }
         
-        // For registered users
         const registeredUser = registeredUsers.find(u => u.id === user.id);
         if (!registeredUser) {
           return { success: false, error: 'User not found' };
@@ -220,31 +195,12 @@ export const useAuthStore = create<AuthStore>()(
         return { success: true };
       },
 
-      // Permission helpers
-      canEdit: () => {
-        const { user } = get();
-        return user?.role === 'admin' || user?.role === 'user';
-      },
-
-      canDelete: () => {
-        const { user } = get();
-        return user?.role === 'admin' || user?.role === 'user';
-      },
-
-      canManageData: () => {
-        const { user } = get();
-        return user?.role === 'admin';
-      },
-
-      isViewer: () => {
-        const { user } = get();
-        return user?.role === 'viewer';
-      },
-
-      isAdmin: () => {
-        const { user } = get();
-        return user?.role === 'admin';
-      },
+      // Permission helpers - roles are gone, so these are simplified
+      canEdit: () => true,
+      canDelete: () => true,
+      canManageData: () => true,
+      isViewer: () => false,
+      isAdmin: () => false,
     }),
     {
       name: 'clarity-auth',

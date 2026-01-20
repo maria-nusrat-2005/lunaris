@@ -1,9 +1,9 @@
 // Budgets Page
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Wallet, AlertCircle, Circle, type LucideIcon } from 'lucide-react';
+import { Plus, Wallet, AlertCircle, Circle, MoreVertical, Edit, Trash2, type LucideIcon } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { AppShell } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -25,22 +25,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ViewerGuard } from '@/components/auth';
 import { cn } from '@/lib/utils';
-import { useBudgetStore, useCategoryStore, useSettingsStore, useAuthStore } from '@/lib/stores';
-import { useTranslation } from '@/lib/hooks';
-import { formatCurrency, formatPercentage, getProgressColor } from '@/lib/utils/helpers';
+import { useBudgetStore, useCategoryStore, useSettingsStore, useAuthStore, useUIStore } from '@/lib/stores';
+import { useTranslation, useBudgetProgress } from '@/lib/hooks';
+import { formatCurrency, formatPercentage, getProgressColor, localizeNumbers } from '@/lib/utils/helpers';
 
 export default function BudgetsPage() {
   const budgets = useBudgetStore((s) => s.budgets);
   const addBudget = useBudgetStore((s) => s.addBudget);
+  const updateBudget = useBudgetStore((s) => s.updateBudget);
+  const deleteBudget = useBudgetStore((s) => s.deleteBudget);
   const getCurrentMonthBudgets = useBudgetStore((s) => s.getCurrentMonthBudgets);
   const categories = useCategoryStore((s) => s.categories);
   const settings = useSettingsStore((s) => s.settings);
-  const { canEdit } = useAuthStore();
+  const { canEdit, canDelete } = useAuthStore();
   const { t, getMonthName, language } = useTranslation();
+  const { getSpentAmount } = useBudgetProgress();
+  const { 
+    activeDialog, 
+    openDialog, 
+    closeDialog, 
+    editingBudgetId,
+    editingBudgetData,
+    openEditBudget,
+    closeEditBudget
+  } = useUIStore();
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const isDialogOpen = activeDialog === 'budget';
+  const isEdit = !!editingBudgetId;
+
   const [formData, setFormData] = useState({
     categoryId: '',
     amount: '',
@@ -60,6 +80,25 @@ export default function BudgetsPage() {
     (c) => !currentBudgets.some((b) => b.categoryId === c.id)
   );
 
+  // Effect to populate form for editing
+  useEffect(() => {
+    if (isDialogOpen) {
+      if (editingBudgetId && editingBudgetData) {
+        setFormData({
+          categoryId: editingBudgetData.categoryId,
+          amount: editingBudgetData.amount.toString(),
+          rolloverEnabled: editingBudgetData.rolloverEnabled || false,
+        });
+      } else {
+        setFormData({
+            categoryId: '',
+            amount: '',
+            rolloverEnabled: false,
+        });
+      }
+    }
+  }, [isDialogOpen, editingBudgetId, editingBudgetData]);
+
   const getIcon = (iconName: string): LucideIcon => {
     const icons = LucideIcons as unknown as Record<string, LucideIcon>;
     return icons[iconName] || Circle;
@@ -69,22 +108,38 @@ export default function BudgetsPage() {
     e.preventDefault();
     if (!formData.categoryId || !formData.amount) return;
 
-    await addBudget({
-      categoryId: formData.categoryId,
-      amount: parseFloat(formData.amount),
-      currency,
-      month: currentMonth,
-      year: currentYear,
-      rolloverEnabled: formData.rolloverEnabled,
-    });
+    if (isEdit && editingBudgetId) {
+        await updateBudget(editingBudgetId, {
+          categoryId: formData.categoryId,
+          amount: parseFloat(formData.amount),
+          rolloverEnabled: formData.rolloverEnabled,
+        });
+        closeEditBudget();
+    } else {
+        await addBudget({
+          categoryId: formData.categoryId,
+          amount: parseFloat(formData.amount),
+          currency,
+          month: currentMonth,
+          year: currentYear,
+          rolloverEnabled: formData.rolloverEnabled,
+        });
+        // Clear form and close dialog
+        setFormData({ categoryId: '', amount: '', rolloverEnabled: false });
+        closeDialog();
+    }
+  };
 
-    setFormData({ categoryId: '', amount: '', rolloverEnabled: false });
-    setIsDialogOpen(false);
+  const handleOpenAdd = () => {
+      // Ensure we clear any previous edit state
+      closeEditBudget(); 
+      openDialog('budget');
   };
 
   // Calculate totals
   const totalBudget = currentBudgets.reduce((sum, b) => sum + b.amount + b.rolloverAmount, 0);
-  const totalSpent = currentBudgets.reduce((sum, b) => sum + b.spent, 0);
+  // Calculate total spent dynamically
+  const totalSpent = currentBudgets.reduce((sum, b) => sum + getSpentAmount(b.categoryId, b.month, b.year), 0);
   const overallProgress = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
   return (
@@ -100,20 +155,20 @@ export default function BudgetsPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t('budgets')}</h1>
             <p className="text-muted-foreground">
-              {getMonthName(currentMonth)} {currentYear}
+              {getMonthName(currentMonth)} {localizeNumbers(currentYear.toString(), language)}
             </p>
           </div>
           {canEdit() && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => !open && closeEditBudget()}>
               <DialogTrigger asChild>
-                <Button className="gap-2" disabled={availableCategories.length === 0}>
+                <Button className="gap-2" disabled={availableCategories.length === 0 && !isEdit} onClick={handleOpenAdd}>
                   <Plus className="w-4 h-4" />
                   {t('addBudget')}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>{t('createNewBudget')}</DialogTitle>
+                  <DialogTitle>{isEdit ? t('editBudget') : t('createNewBudget')}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-6 mt-4">
                   <div className="space-y-2">
@@ -121,22 +176,33 @@ export default function BudgetsPage() {
                     <Select
                       value={formData.categoryId}
                       onValueChange={(value) => setFormData((f) => ({ ...f, categoryId: value }))}
+                      disabled={isEdit} // Disable category change when editing
                     >
                       <SelectTrigger>
                         <SelectValue placeholder={t('category')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableCategories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: category.color }}
-                              />
-                              {category.name}
-                            </div>
-                          </SelectItem>
-                        ))}
+                        {isEdit ? (
+                            // Show current category if editing
+                             <SelectItem key={formData.categoryId} value={formData.categoryId || 'temp'}>
+                                {(() => {
+                                    const c = categories.find(cat => cat.id === formData.categoryId);
+                                    return c ? t(c.name.toLowerCase().replace(/ & /g, '').replace(/ /g, '')) : t('category');
+                                })()}
+                             </SelectItem>
+                        ) : (
+                             availableCategories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: category.color }}
+                                  />
+                                  {t(category.name.toLowerCase().replace(/ & /g, '').replace(/ /g, ''))}
+                                </div>
+                              </SelectItem>
+                            ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -155,11 +221,11 @@ export default function BudgetsPage() {
                   </div>
 
                   <div className="flex gap-3 pt-4">
-                    <Button type="button" variant="outline" className="flex-1" onClick={() => setIsDialogOpen(false)}>
+                    <Button type="button" variant="outline" className="flex-1" onClick={() => closeEditBudget()}>
                       {t('cancel')}
                     </Button>
                     <Button type="submit" className="flex-1">
-                      {t('create')}
+                      {isEdit ? t('update') : t('create')}
                     </Button>
                   </div>
                 </form>
@@ -198,7 +264,7 @@ export default function BudgetsPage() {
                     } as React.CSSProperties}
                   />
                   <p className="text-right text-sm text-muted-foreground mt-1">
-                    {formatPercentage(overallProgress)} {t('used')}
+                    {formatPercentage(overallProgress, 1, language)} {t('used')}
                   </p>
                 </div>
               </div>
@@ -219,7 +285,7 @@ export default function BudgetsPage() {
                   {t('createBudgetDesc')}
                 </p>
                 {canEdit() && (
-                  <Button onClick={() => setIsDialogOpen(true)}>
+                  <Button onClick={handleOpenAdd}>
                     <Plus className="w-4 h-4 mr-2" />
                     {t('createFirstBudget')}
                   </Button>
@@ -233,8 +299,9 @@ export default function BudgetsPage() {
               const category = categories.find((c) => c.id === budget.categoryId);
               const Icon = getIcon(category?.icon || 'Circle');
               const totalAmount = budget.amount + budget.rolloverAmount;
-              const progress = totalAmount > 0 ? (budget.spent / totalAmount) * 100 : 0;
-              const remaining = totalAmount - budget.spent;
+              const spent = getSpentAmount(budget.categoryId, budget.month, budget.year);
+              const progress = totalAmount > 0 ? (spent / totalAmount) * 100 : 0;
+              const remaining = totalAmount - spent;
               const isOverBudget = remaining < 0;
 
               return (
@@ -258,11 +325,27 @@ export default function BudgetsPage() {
                             <Icon className="w-5 h-5" style={{ color: category?.color }} />
                           </div>
                           <CardTitle className="text-base font-semibold">
-                            {category?.name || 'Unknown'}
+                            {category ? t(category.name.toLowerCase().replace(/ & /g, '').replace(/ /g, '')) : t('other')}
                           </CardTitle>
                         </div>
-                        {isOverBudget && (
-                          <AlertCircle className="w-5 h-5 text-danger" />
+                        {canEdit() && (
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="-mr-2">
+                                        <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => openEditBudget(budget.id, budget)}>
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        {t('edit')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-destructive" onClick={() => deleteBudget(budget.id)}>
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        {t('delete')}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                             </DropdownMenu>
                         )}
                       </div>
                     </CardHeader>
@@ -271,7 +354,7 @@ export default function BudgetsPage() {
                         <div className="flex justify-between text-sm mb-2">
                           <span className="text-muted-foreground">{t('spent')}</span>
                           <span className="font-medium">
-                            {formatCurrency(budget.spent, currency as any, language)} / {formatCurrency(totalAmount, currency as any, language)}
+                            {formatCurrency(spent, currency as any, language)} / {formatCurrency(totalAmount, currency as any, language)}
                           </span>
                         </div>
                         <Progress

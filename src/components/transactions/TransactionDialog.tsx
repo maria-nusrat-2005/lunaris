@@ -26,9 +26,15 @@ import { useTranslation } from '@/lib/hooks';
 import type { RecurrenceType } from '@/lib/types';
 
 export function TransactionDialog() {
-  const { isAddingTransaction, transactionTypeToAdd, closeAddTransaction } = useUIStore();
-  const { addTransaction } = useTransactionStore();
-  const { updateBudgetSpending } = useBudgetStore();
+  const { 
+    isAddingTransaction, 
+    transactionTypeToAdd, 
+    closeAddTransaction,
+    editingTransactionId,
+    editingTransactionData,
+    closeEditTransaction
+  } = useUIStore();
+  const { addTransaction, updateTransaction } = useTransactionStore();
   const categories = useCategoryStore((s) => s.categories);
   const settings = useSettingsStore((s) => s.settings);
   const { t } = useTranslation();
@@ -57,15 +63,27 @@ export function TransactionDialog() {
   // Reset form when dialog opens
   useEffect(() => {
     if (isAddingTransaction) {
-      setFormData({
-        amount: '',
-        categoryId: filteredCategories[0]?.id || '',
-        description: '',
-        date: new Date().toISOString().split('T')[0],
-        recurrence: 'none',
-      });
+      if (editingTransactionId && editingTransactionData) {
+        // Edit mode
+        setFormData({
+          amount: editingTransactionData.amount.toString(),
+          categoryId: editingTransactionData.categoryId,
+          description: editingTransactionData.description || '',
+          date: new Date(editingTransactionData.date).toISOString().split('T')[0],
+          recurrence: editingTransactionData.recurrence || 'none',
+        });
+      } else {
+        // Add mode
+        setFormData({
+          amount: '',
+          categoryId: filteredCategories[0]?.id || '',
+          description: '',
+          date: new Date().toISOString().split('T')[0],
+          recurrence: 'none',
+        });
+      }
     }
-  }, [isAddingTransaction, type]);
+  }, [isAddingTransaction, type, editingTransactionId, editingTransactionData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,28 +93,31 @@ export function TransactionDialog() {
     try {
       const amount = parseFloat(formData.amount);
       
-      await addTransaction({
-        type,
-        amount,
-        currency,
-        categoryId: formData.categoryId,
-        description: formData.description,
-        date: new Date(formData.date),
-        recurrence: formData.recurrence,
-      });
-
-      // Update budget spending if it's an expense
-      if (type === 'expense') {
-        const date = new Date(formData.date);
-        await updateBudgetSpending(
-          formData.categoryId,
-          date.getMonth() + 1,
-          date.getFullYear(),
-          amount
-        );
+      if (editingTransactionId) {
+        await updateTransaction(editingTransactionId, {
+          type,
+          amount,
+          currency,
+          categoryId: formData.categoryId,
+          description: formData.description,
+          date: new Date(formData.date),
+          recurrence: formData.recurrence,
+        });
+      } else {
+        await addTransaction({
+          type,
+          amount,
+          currency,
+          categoryId: formData.categoryId,
+          description: formData.description,
+          date: new Date(formData.date),
+          recurrence: formData.recurrence,
+        });
       }
 
-      closeAddTransaction();
+      // No manual budget update needed anymore as it's dynamic
+
+      handleClose();
     } catch (error) {
       console.error('Failed to add transaction:', error);
     } finally {
@@ -104,15 +125,28 @@ export function TransactionDialog() {
     }
   };
 
+  const handleClose = () => {
+    if (editingTransactionId) {
+      closeEditTransaction();
+    } else {
+      closeAddTransaction();
+    }
+  };
+
+  const isEdit = !!editingTransactionId;
+
   return (
-    <Dialog open={isAddingTransaction} onOpenChange={(open) => !open && closeAddTransaction()}>
+    <Dialog open={isAddingTransaction} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className={cn(
             'text-xl font-semibold',
             type === 'income' ? 'text-emerald' : 'text-foreground'
           )}>
-            {type === 'income' ? t('addIncome') : t('addExpense')}
+            {isEdit 
+              ? (type === 'income' ? t('editIncome') : t('editExpense'))
+              : (type === 'income' ? t('addIncome') : t('addExpense'))
+            }
           </DialogTitle>
         </DialogHeader>
 
@@ -157,7 +191,7 @@ export function TransactionDialog() {
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: category.color }}
                       />
-                      {category.name}
+                      {t(category.name.toLowerCase().replace(/ & /g, '').replace(/ /g, ''))}
                     </div>
                   </SelectItem>
                 ))}
@@ -223,7 +257,7 @@ export function TransactionDialog() {
               type="button"
               variant="outline"
               className="flex-1"
-              onClick={closeAddTransaction}
+              onClick={handleClose}
             >
               {t('cancel')}
             </Button>
@@ -237,7 +271,7 @@ export function TransactionDialog() {
               )}
               disabled={isSubmitting || !formData.amount || !formData.categoryId}
             >
-              {isSubmitting ? t('loading') : t('addTransaction')}
+              {isSubmitting ? t('loading') : (isEdit ? t('update') : t('addTransaction'))}
             </Button>
           </div>
         </form>

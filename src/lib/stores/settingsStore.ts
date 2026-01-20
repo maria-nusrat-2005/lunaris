@@ -112,6 +112,14 @@ interface UIState {
   activeDialog: string | null;
   isAddingTransaction: boolean;
   transactionTypeToAdd: 'income' | 'expense' | null;
+  
+  // Edit states
+  editingTransactionId: string | null;
+  editingTransactionData: any | null;
+  editingBudgetId: string | null;
+  editingBudgetData: any | null;
+  editingGoalId: string | null;
+  editingGoalData: any | null;
 
   // Actions
   toggleSidebar: () => void;
@@ -122,6 +130,14 @@ interface UIState {
   closeDialog: () => void;
   openAddTransaction: (type: 'income' | 'expense') => void;
   closeAddTransaction: () => void;
+  
+  // Edit actions
+  openEditTransaction: (id: string, data: any) => void;
+  closeEditTransaction: () => void;
+  openEditBudget: (id: string, data: any) => void;
+  closeEditBudget: () => void;
+  openEditGoal: (id: string, data: any) => void;
+  closeEditGoal: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -130,6 +146,13 @@ export const useUIStore = create<UIState>((set) => ({
   activeDialog: null,
   isAddingTransaction: false,
   transactionTypeToAdd: null,
+  
+  editingTransactionId: null,
+  editingTransactionData: null,
+  editingBudgetId: null,
+  editingBudgetData: null,
+  editingGoalId: null,
+  editingGoalData: null,
 
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -139,4 +162,13 @@ export const useUIStore = create<UIState>((set) => ({
   closeDialog: () => set({ activeDialog: null }),
   openAddTransaction: (type) => set({ isAddingTransaction: true, transactionTypeToAdd: type }),
   closeAddTransaction: () => set({ isAddingTransaction: false, transactionTypeToAdd: null }),
+  
+  openEditTransaction: (id, data) => set({ editingTransactionId: id, editingTransactionData: data, isAddingTransaction: true, transactionTypeToAdd: data.type }),
+  closeEditTransaction: () => set({ editingTransactionId: null, editingTransactionData: null, isAddingTransaction: false, transactionTypeToAdd: null }),
+  
+  openEditBudget: (id, data) => set({ editingBudgetId: id, editingBudgetData: data, activeDialog: 'budget' }),
+  closeEditBudget: () => set({ editingBudgetId: null, editingBudgetData: null, activeDialog: null }),
+  
+  openEditGoal: (id, data) => set({ editingGoalId: id, editingGoalData: data, activeDialog: 'goal' }),
+  closeEditGoal: () => set({ editingGoalId: null, editingGoalData: null, activeDialog: null }),
 }));

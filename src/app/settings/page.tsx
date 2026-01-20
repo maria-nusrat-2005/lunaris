@@ -44,12 +44,14 @@ import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/lib/stores';
 import { useTheme, useTranslation } from '@/lib/hooks';
 import { exportToJSON, exportToCSV, importFromJSON, importFromCSV, downloadFile, deleteAllData } from '@/lib/utils/dataExport';
-import { isAIEnabled, saveAPIKey, removeAPIKey, getMaskedAPIKey } from '@/lib/ai';
+import { saveAPIKeyEncrypted, removeAPIKey, getMaskedAPIKey, isAPIKeyConfigured, cancelActiveRequest } from '@/lib/ai';
 import { ProfileSettings } from '@/components/settings';
 import type { ThemeMode, Currency, Language } from '@/lib/types';
 
 export default function SettingsPage() {
   const settings = useSettingsStore((s) => s.settings);
+  const enableAI = useSettingsStore((s) => s.enableAI);
+  const disableAI = useSettingsStore((s) => s.disableAI);
   const { theme, setTheme } = useTheme();
   const setCurrency = useSettingsStore((s) => s.setCurrency);
   const setLanguage = useSettingsStore((s) => s.setLanguage);
@@ -62,8 +64,12 @@ export default function SettingsPage() {
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
-  const [aiEnabled, setAiEnabled] = useState(isAIEnabled());
+  const [isSavingKey, setIsSavingKey] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Derive AI state from settings store
+  const aiEnabled = settings?.aiEnabled ?? false;
+  const isConfigured = isAPIKeyConfigured();
 
   const themeOptions: { value: ThemeMode; icon: typeof Sun; labelKey: string; descKey: string }[] = [
     { value: 'light', icon: Sun, labelKey: 'light', descKey: 'brightAndClean' },
@@ -126,7 +132,7 @@ export default function SettingsPage() {
       } else if (file.name.endsWith('.csv')) {
         result = await importFromCSV(content);
       } else {
-        result = { success: false, message: 'Please select a .json or .csv file' };
+        result = { success: false, message: t('selectFile') };
       }
 
       setImportMessage({
@@ -141,7 +147,7 @@ export default function SettingsPage() {
     } catch (error) {
       setImportMessage({
         type: 'error',
-        text: 'Failed to import file',
+        text: t('hfTokenRequired'),
       });
     } finally {
       setImportLoading(false);
@@ -157,19 +163,46 @@ export default function SettingsPage() {
     window.location.reload();
   };
 
-  const handleSaveApiKey = () => {
-    if (apiKey.trim()) {
-      saveAPIKey(apiKey.trim());
-      setAiEnabled(true);
+  const handleSaveApiKey = async () => {
+    if (!apiKey.trim()) return;
+    
+    setIsSavingKey(true);
+    try {
+      // Save encrypted API key
+      await saveAPIKeyEncrypted(apiKey.trim());
+      // Enable AI in settings store
+      await enableAI('encrypted');
       setApiKey('');
       setAiDialogOpen(false);
+    } catch (error) {
+      console.error('Failed to save API key:', error);
+    } finally {
+      setIsSavingKey(false);
     }
   };
 
-  const handleRemoveApiKey = () => {
+  const handleRemoveApiKey = async () => {
+    // Cancel any active AI requests immediately
+    cancelActiveRequest();
+    // Remove the encrypted key
     removeAPIKey();
-    setAiEnabled(false);
+    // Disable AI in settings store
+    await disableAI();
     setAiDialogOpen(false);
+  };
+
+  const handleToggleAI = async () => {
+    if (aiEnabled) {
+      // Turning OFF - cancel requests and disable
+      cancelActiveRequest();
+      await disableAI();
+    } else if (isConfigured) {
+      // Turning ON (key already configured)
+      await enableAI('encrypted');
+    } else {
+      // Need to configure first
+      setAiDialogOpen(true);
+    }
   };
 
   return (
@@ -458,31 +491,89 @@ export default function SettingsPage() {
 
             <Separator />
 
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-purple-500" />
-                </div>
-                <div>
-                  <p className="font-medium">{t('aiFeatures')}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {t('aiFeaturesDesc')}
-                  </p>
-                  {aiEnabled && (
-                    <p className="text-xs text-emerald mt-1 flex items-center gap-1">
-                      <Check className="w-3 h-3" />
-                      API Key configured: {getMaskedAPIKey()}
+            <div className="space-y-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{t('aiFeatures')}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t('aiFeaturesDesc')}
                     </p>
+                  </div>
+                </div>
+                {/* Toggle Switch */}
+                <button
+                  onClick={handleToggleAI}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+                    aiEnabled ? 'bg-purple-500' : 'bg-muted'
                   )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out',
+                      aiEnabled ? 'translate-x-5' : 'translate-x-0'
+                    )}
+                  />
+                </button>
+              </div>
+
+              {/* Status and Configure */}
+              <div className="ml-13 pl-13 space-y-3">
+                {isConfigured ? (
+                  <div className="flex items-center justify-between">
+                    <p className={cn(
+                      'text-xs flex items-center gap-1',
+                      aiEnabled ? 'text-emerald' : 'text-muted-foreground'
+                    )}>
+                      {aiEnabled ? (
+                        <>
+                          <Check className="w-3 h-3" />
+                          {t('aiActive')} • {t('aiActiveKey')}: {getMaskedAPIKey()}
+                        </>
+                      ) : (
+                        <>
+                          <X className="w-3 h-3" />
+                          {t('aiFeatures')} {t('disabled')} • {t('aiDisabledKey')}
+                        </>
+                      )}
+                    </p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setAiDialogOpen(true)}
+                    >
+                      {t('configure')}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      {t('noData')}
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setAiDialogOpen(true)}
+                    >
+                      {t('addApiKey')}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Privacy Notice */}
+                <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+                  <p className="font-medium mb-1">🔒 {t('privacyNote')}</p>
+                  <p>
+                    {t('privacyNoteDesc')}
+                  </p>
                 </div>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setAiDialogOpen(true)}
-              >
-                {t('configure')}
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -541,16 +632,16 @@ export default function SettingsPage() {
               {t('aiFeatures')}
             </DialogTitle>
             <DialogDescription>
-              Enter your Google Gemini API key to enable AI-powered insights and auto-categorization.
+              {t('aiConfigTitle')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Gemini API Key</label>
+              <label className="text-sm font-medium">{t('hfToken')}</label>
               <div className="relative">
                 <Input
                   type={showApiKey ? 'text' : 'password'}
-                  placeholder="AIza..."
+                  placeholder={t('hfTokenPlaceholder')}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   className="pr-10"
@@ -564,14 +655,14 @@ export default function SettingsPage() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Get your API key from{' '}
+                Get your token from{' '}
                 <a 
-                  href="https://aistudio.google.com/apikey" 
+                  href="https://huggingface.co/settings/tokens" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
                 >
-                  Google AI Studio
+                  {t('hfSettings')}
                 </a>
               </p>
             </div>
@@ -580,10 +671,10 @@ export default function SettingsPage() {
               {aiEnabled ? (
                 <>
                   <Button variant="outline" className="flex-1" onClick={handleRemoveApiKey}>
-                    Remove API Key
+                    {t('removeApiKey')}
                   </Button>
                   <Button className="flex-1" onClick={handleSaveApiKey} disabled={!apiKey.trim()}>
-                    Update Key
+                    {t('updateKey')}
                   </Button>
                 </>
               ) : (
