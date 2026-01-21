@@ -159,22 +159,22 @@ export async function sendChatMessage(
   ];
 
   try {
-    // Use local API proxy to avoid CORS issues
-    const response = await fetch('/api/ai/chat', {
+    // Call the OpenAI-compatible endpoint on the HF Router directly from the client
+    // Since we are using static export, we cannot use local API routes
+    const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       signal: activeController.signal,
       body: JSON.stringify({
-        token: apiKey,
+        model: 'Qwen/Qwen2.5-7B-Instruct',
         messages: messages,
-        parameters: {
-          max_new_tokens: 500,
-          temperature: 0.7,
-          top_p: 0.9,
-          do_sample: true,
-        },
+        max_tokens: 500,
+        temperature: 0.7,
+        top_p: 0.9,
+        stream: false,
       }),
     });
 
@@ -190,12 +190,20 @@ export async function sendChatMessage(
     
     // Handle different response formats
     let text = '';
-    if (Array.isArray(data) && data[0]?.generated_text) {
+    
+    // 1. OpenAI format (from direct HF Router call)
+    if (data.choices?.[0]?.message?.content) {
+      text = data.choices[0].message.content;
+    }
+    // 2. Old proxy format or HF Inference API format
+    else if (Array.isArray(data) && data[0]?.generated_text) {
       text = data[0].generated_text;
-    } else if (typeof data === 'string') {
-      text = data;
     } else if (data.generated_text) {
       text = data.generated_text;
+    } 
+    // 3. Simple string format
+    else if (typeof data === 'string') {
+      text = data;
     }
     
     // Clean up response - remove any trailing tokens
