@@ -20,7 +20,9 @@ export const metadata: Metadata = {
   keywords: ["personal finance", "budget tracker", "expense tracker", "savings goals", "offline-first", "privacy-first"],
   authors: [{ name: "Lunaris" }],
   icons: {
-    icon: "/favicon.ico",
+    icon: "/half-moon.png",
+    shortcut: "/half-moon.png",
+    apple: "/half-moon.png",
   },
 };
 

@@ -105,7 +105,7 @@ const AnimatedLogo = () => (
         ease: 'easeInOut',
       }}
     >
-      💎
+      <img src="/half-moon.png" alt="Lunaris Logo" className="w-16 h-16 object-contain" />
     </motion.span>
     <SparkleEffect delay={0} />
     <motion.div
@@ -279,7 +279,7 @@ export default function LandingPage() {
                 ease: 'easeInOut',
               }}
             >
-              💎
+              <img src="/half-moon.png" alt="Logo" className="w-8 h-8 object-contain" />
             </motion.span>
             <span className="text-xl font-bold">{t('appName')}</span>
           </motion.div>
@@ -657,7 +657,7 @@ export default function LandingPage() {
                         ease: 'easeInOut',
                       }}
                     >
-                      💎
+                    <img src="/half-moon.png" alt="Logo" className="w-8 h-8 object-contain" />
                     </motion.span>
                     <div>
                       <h3 className="text-white font-semibold text-lg">{t('lunarisAppTour')}</h3>
@@ -722,101 +722,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 relative">
-        <div className="container mx-auto max-w-4xl">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 30 }}
-            whileInView={{ opacity: 1, scale: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <Card className="shadow-xl overflow-hidden relative">
-              {/* Animated background glow */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-primary/20 to-cyan-500/20"
-                animate={{
-                  opacity: [0.3, 0.6, 0.3],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              />
-              <CardContent className="p-8 md:p-12 text-center bg-gradient-to-br from-primary/10 to-cyan-500/10 relative z-10">
-                {/* Animated Logo */}
-                <motion.div 
-                  className="mb-6"
-                  animate={{
-                    y: [0, -10, 0],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
-                >
-                  <AnimatedLogo />
-                </motion.div>
-                
-                <motion.h2 
-                  className="text-3xl font-bold mb-4"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.2 }}
-                >
-                  {t('readyToGetStarted')}
-                </motion.h2>
-                <motion.p 
-                  className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.3 }}
-                >
-                  {t('createAccountSeconds')}
-                </motion.p>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.4 }}
-                >
-                  <Link href="/login">
-                    <motion.div
-                      className="inline-block rounded-lg"
-                      whileHover={{ scale: 1.05, y: -3 }}
-                      whileTap={{ scale: 0.95 }}
-                      animate={{
-                        boxShadow: [
-                          '0 0 0 0 rgba(var(--primary), 0.4)',
-                          '0 0 30px 15px rgba(var(--primary), 0.15)',
-                          '0 0 0 0 rgba(var(--primary), 0.4)',
-                        ],
-                      }}
-                      transition={{
-                        boxShadow: { duration: 2, repeat: Infinity },
-                      }}
-                    >
-                      <Button size="lg" className="gap-2 text-lg px-8">
-                        {t('createFreeAccount')}
-                        <motion.span
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ duration: 1, repeat: Infinity }}
-                        >
-                          <ArrowRight className="w-5 h-5" />
-                        </motion.span>
-                      </Button>
-                    </motion.div>
-                  </Link>
-                </motion.div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </section>
+
 
       {/* Footer */}
       <footer className="py-8 px-4 border-t border-border">

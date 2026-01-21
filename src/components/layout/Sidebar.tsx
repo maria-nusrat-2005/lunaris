@@ -65,7 +65,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex items-center h-16 px-4 border-b border-sidebar-border">
         <Link href="/" className="flex items-center gap-3 overflow-hidden">
-          <span className="text-3xl shrink-0">💎</span>
+          <img src="/half-moon.png" alt="Logo" className="w-8 h-8 object-contain shrink-0" />
           <AnimatePresence>
             {!sidebarCollapsed && (
               <motion.span
@@ -235,7 +235,7 @@ export function Sidebar() {
             {/* Header with close button */}
             <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
               <Link href="/" className="flex items-center gap-3" onClick={handleNavClick}>
-                <span className="text-3xl">💎</span>
+                <img src="/half-moon.png" alt="Logo" className="w-8 h-8 object-contain" />
                 <span className="text-lg font-bold text-foreground">{t('appName')}</span>
               </Link>
               <Button
